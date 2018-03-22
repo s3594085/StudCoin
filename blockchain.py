@@ -25,6 +25,7 @@ class Blockchain(object):
         block = {
             'index': len(self.chain) + 1,
             'timestamp': time(),
+            'difficulty': 0,
             'nonce': 1,
             'transactions': self.current_transactions,
         }
@@ -92,7 +93,7 @@ class Blockchain(object):
         :return: <int>
         """
         guess_hash = self.valid_proof(block)
-        while guess_hash[:5] != "00000":
+        while guess_hash[:blockchain.get_difficulty()] != blockchain.get_difficulty() * "0":
             if blockchain.interrupted == 1:
                 blockchain.interrupted = 0
                 return None
@@ -101,6 +102,32 @@ class Blockchain(object):
                 return None
             guess_hash = self.valid_proof(block)
         return block
+
+    "By Seconds"
+    BLOCK_GENERATION_INTERVAL = 60
+    "By Blocks"
+    DIFFICULTY_ADJUSTMENT_INTERVAL = 10
+
+    """
+    Obtain difficulty from last block
+    """
+    def get_difficulty(self):
+        latest_block = self.chain[-1]
+        if latest_block['index'] % blockchain.DIFFICULTY_ADJUSTMENT_INTERVAL == 0 and latest_block['index'] != 0:
+            return blockchain.get_adjusted_difficulty(latest_block, self.chain)
+        else:
+            return latest_block['difficulty']
+
+    def get_adjusted_difficulty(self, latest_block, block):
+        prev_adjustment_block = self.chain[-blockchain.DIFFICULTY_ADJUSTMENT_INTERVAL]
+        time_expected = blockchain.BLOCK_GENERATION_INTERVAL * blockchain.DIFFICULTY_ADJUSTMENT_INTERVAL
+        time_taken = latest_block['timestamp'] - prev_adjustment_block['timestamp']
+        if time_taken < time_expected / 2:
+            return prev_adjustment_block['difficulty'] + 1
+        elif time_taken < time_expected * 2:
+            return prev_adjustment_block['difficulty'] - 1
+        else:
+            return prev_adjustment_block['difficulty']
 
     @staticmethod
     def valid_proof(block):
@@ -268,7 +295,7 @@ def mine():
         recipient=node_identifier,
         amount=1
     )
-    
+
     # We run the proof of work algorithm to get the next proof
     while True:
         last_block = blockchain.last_block
@@ -277,6 +304,7 @@ def mine():
             'index': len(blockchain.chain) + 1,
             'timestamp': time(),
             'previous_hash': previous_hash or blockchain.hash(blockchain.chain[-1]),
+            'difficulty': blockchain.get_difficulty(),
             'nonce': 0,
             'transactions': blockchain.current_transactions,
         }
@@ -338,7 +366,6 @@ def full_chain():
         'length': len(blockchain.chain),
     }
     return jsonify(response), 200
-
 
 if __name__ == '__main__':
     host = '127.0.0.1'
