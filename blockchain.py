@@ -25,6 +25,7 @@ class Blockchain(object):
         block = {
             'index': len(self.chain) + 1,
             'timestamp': time(),
+            'previous_hash': 0,
             'difficulty': 0,
             'nonce': 1,
             'transactions': self.current_transactions,
@@ -324,8 +325,10 @@ def mine():
         response = {
             'message': "New Block Forged",
             'index': block['index'],
-            'nonce': block['nonce'],
+            'timestamp': block['timestamp'],
             'previous_hash': block['previous_hash'],
+            'difficulty': block['difficulty'],
+            'nonce': block['nonce'],
             'transactions': block['transactions'],
         }
 
