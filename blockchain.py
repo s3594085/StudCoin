@@ -8,6 +8,9 @@ from textwrap import dedent
 from uuid import uuid4
 from flask import Flask, jsonify, request
 from urllib.parse import urlparse
+from ecdsa import SigningKey,VerifyingKey,NIST256p
+from hashlib import sha256
+import codecs
 
 
 class Blockchain(object):
@@ -367,6 +370,15 @@ def full_chain():
     }
     return jsonify(response), 200
 
+def generateKeyPair():
+    privateKey = SigningKey.generate(curve=NIST256p, hashfunc=sha256)
+    publicKey = privateKey.get_verifying_key()
+    return ((privateKey.to_string().hex()),publicKey.to_string().hex())
+
+def sign(message, privateKeyString):
+   privateKey = SigningKey.from_string(bytes.fromhex(privateKeyString), curve=NIST256p)
+   signature = privateKey.sign(message)
+   
 if __name__ == '__main__':
     host = '127.0.0.1'
     port = 5000
