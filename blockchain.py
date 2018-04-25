@@ -60,12 +60,17 @@ class Blockchain(object):
         :param amount: <int> Amount
         :return <int> The index of the block which will contain the transaction
         """
-
-        self.current_transactions.append({
+        transaction = {
             'sender': sender,
             'recipient': recipient,
             'amount': amount,
-        })
+        }
+        if transaction not in self.current_transactions:
+            self.current_transactions.append({
+                'sender': sender,
+                'recipient': recipient,
+                'amount': amount,
+            })
 
         return self.last_block['index'] + 1
 
@@ -197,7 +202,7 @@ class Blockchain(object):
 
         return True
 
-    def resolve_conflicts(self, skip_nodes):
+    def resolve_conflicts(self, length, skip_nodes):
         """
         This is our consensus algorithm, it resolves conflicts by
         replacing our chain with the longest one in the network
@@ -209,6 +214,8 @@ class Blockchain(object):
 
         # We are only looking for chains longer than ours
         max_length = len(self.chain)
+        if length <= max_length:
+            return False
 
         for node in blockchain.nodes:
             response = requests.get(f'{node}chain')
@@ -225,11 +232,12 @@ class Blockchain(object):
         if new_chain:
             self.chain = new_chain
             nodes_toCall = set(self.nodes) - set(skip_nodes)
+            headers = {'Content-Type': 'application/json'}
+            data = {
+                "length": length,
+                "nodes": list(set(skip_nodes) | self.nodes),
+            }
             for node in nodes_toCall:
-                headers = {'Content-Type': 'application/json'}
-                data = {
-                    "nodes": list(set(skip_nodes) | self.nodes),
-                }
                 r = requests.post(f'{node}nodes/resolve', data=json.dumps(data), headers=headers)
                 print(r.json)
                 self.interrupted = 1
@@ -271,9 +279,10 @@ def register_nodes():
 @app.route('/nodes/resolve', methods=['POST'])
 def consensus():
     values = request.get_json()
+    length = values.get('length')
     skip_nodes = values.get('nodes')
 
-    replaced = blockchain.resolve_conflicts(skip_nodes)
+    replaced = blockchain.resolve_conflicts(length, skip_nodes)
 
     if replaced:
         blockchain.interrupted = 1
@@ -335,8 +344,11 @@ def mine():
         }
 
         # Update all other nodes
+        skip_nodes = list(blockchain.nodes)
+        skip_nodes.append(f'http://{host}:{port}/')
         data = {
-            "nodes": list(blockchain.nodes)
+            "length": len(blockchain.chain),
+            "nodes": skip_nodes
         }
         headers = {'Content-Type': 'application/json'}
         for node in blockchain.nodes:
@@ -351,7 +363,6 @@ def mine():
 def new_transaction():
     values = request.get_json()
     skip_nodes = values.get('nodes')
-
 
     # Check that all required fields are present
     required = ['sender', 'recipient', 'amount']
@@ -387,5 +398,5 @@ def full_chain():
 
 if __name__ == '__main__':
     host = '127.0.0.1'
-    port = 5020
+    port = 5030
     app.run(host, port, threaded=True)
