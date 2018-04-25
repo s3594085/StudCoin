@@ -95,6 +95,7 @@ class Blockchain(object):
         """
         guess_hash = self.valid_proof(block)
         while guess_hash[:blockchain.get_difficulty()] != blockchain.get_difficulty() * "0":
+            # We have updated our blockchain as another node mined a block, return none and begin mining new block
             if blockchain.interrupted == 1:
                 blockchain.interrupted = 0
                 return None
@@ -204,13 +205,12 @@ class Blockchain(object):
         :return: <bool> True if our chain was replaced, False if not
         """
 
-        neighbours = self.nodes
         new_chain = None
 
         # We are only looking for chains longer than ours
         max_length = len(self.chain)
 
-        for node in neighbours:
+        for node in blockchain.nodes:
             response = requests.get(f'{node}chain')
 
             if response.status_code == 200:
@@ -219,19 +219,21 @@ class Blockchain(object):
 
                 # Check if the length is longer and the chain is valid
                 if length > max_length and self.valid_chain(chain):
-                    """
-                    for node in neighbours:
-                        if node not in skip_nodes:
-                            headers = {'Content-Type': 'application/json'}
-                            r = requests.post(f'{node}nodes/register', data=json.dumps(), headers=headers)
-                            # Call consenus on nodes
-                    """
                     max_length = length
                     new_chain = chain
 
         if new_chain:
             self.chain = new_chain
-            return True, skip_nodes
+            nodes_toCall = set(self.nodes) - set(skip_nodes)
+            for node in nodes_toCall:
+                headers = {'Content-Type': 'application/json'}
+                data = {
+                    "nodes": list(set(skip_nodes) | self.nodes),
+                }
+                r = requests.post(f'{node}nodes/resolve', data=json.dumps(data), headers=headers)
+                print(r.json)
+                self.interrupted = 1
+            return True
 
         return False
 
@@ -333,9 +335,8 @@ def mine():
         }
 
         # Update all other nodes
-        nodes = list(blockchain.nodes)
         data = {
-            "nodes": nodes
+            "nodes": list(blockchain.nodes)
         }
         headers = {'Content-Type': 'application/json'}
         for node in blockchain.nodes:
@@ -349,6 +350,8 @@ def mine():
 @app.route('/transactions/new', methods=['POST'])
 def new_transaction():
     values = request.get_json()
+    skip_nodes = values.get('nodes')
+
 
     # Check that all required fields are present
     required = ['sender', 'recipient', 'amount']
@@ -357,6 +360,18 @@ def new_transaction():
 
     # Creates a new transaction
     index = blockchain.new_transaction(values['sender'], values['recipient'], values['amount'])
+
+    headers = {'Content-Type': 'application/json'}
+    nodes_toCall = blockchain.nodes - set(skip_nodes)
+    print(skip_nodes)
+    data = {
+        "sender": values['sender'],
+        "recipient": values['recipient'],
+        "amount": values['amount'],
+        "nodes": list(set(skip_nodes) | blockchain.nodes),
+    }
+    for node in nodes_toCall:
+        r = requests.post(f'{node}transactions/new', data=json.dumps(data), headers=headers)
 
     response = {'message': f'Transaction will be added to Block {index}'}
     return jsonify(response), 500
@@ -372,5 +387,5 @@ def full_chain():
 
 if __name__ == '__main__':
     host = '127.0.0.1'
-    port = 5000
+    port = 5020
     app.run(host, port, threaded=True)
