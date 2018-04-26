@@ -3,6 +3,7 @@ import json
 import requests
 
 import transaction
+import wallet
 
 from threading import Thread
 from time import time
@@ -22,6 +23,7 @@ class Blockchain(object):
     def __init__(self):
         self.chain = []
         self.current_transactions = []
+        self.unspentTxOuts = []
 
         # Creates the genesis block
         block = {
@@ -67,6 +69,17 @@ class Blockchain(object):
             'recipient': recipient,
             'amount': amount,
         })
+
+        return self.last_block['index'] + 1
+
+    def newTransaction(self, transaction):
+        jsonString = {
+            'id': transaction.id,
+            'txIns': [txIn.__dict__ for txIn in transaction.txIns],
+            'txOuts': [txOut.__dict__ for txOut in transaction.txOuts],
+        }
+
+        self.current_transactions.append(jsonString)
 
         return self.last_block['index'] + 1
 
@@ -246,6 +259,14 @@ node_identifier = str(uuid4()).replace('-', '')
 blockchain = Blockchain()
 
 
+@app.route('/balance', methods=['GET'])
+def getAccountBalance():
+    response = {
+        'balance': wallet.getBalance("abc", blockchain.unspentTxOuts),
+    }
+    return jsonify(response), 200
+
+
 @app.route('/hash', methods=['POST'])
 def hashes():
     """
@@ -323,16 +344,22 @@ def consensus():
 @app.route('/mine', methods=['GET'])
 def mine():
     # Miners reward transaction
+    """
     blockchain.new_transaction(
         sender="0",
         recipient=node_identifier,
         amount=1
     )
+    """
+    tx = transaction.getCoinbaseTransaction("abc", len(blockchain.chain) + 1)
+
+    blockchain.newTransaction(tx)
 
     # We run the proof of work algorithm to get the next proof
     while True:
         last_block = blockchain.last_block
         previous_hash = blockchain.hash(last_block)
+
         block = {
             'index': len(blockchain.chain) + 1,
             'timestamp': time(),
@@ -346,6 +373,13 @@ def mine():
 
         if block is None:
             continue
+
+        retVal = transaction.processTransaction([tx], blockchain.unspentTxOuts, len(blockchain.chain) + 1)
+
+        if retVal is None:
+            continue
+
+        blockchain.unspentTxOuts = retVal
 
         # Forge the new block by adding it to the chain
         blockchain.new_block(block)
