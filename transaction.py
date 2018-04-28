@@ -1,6 +1,9 @@
 import json
 import hashlib
 
+from ecdsa import SigningKey, VerifyingKey, NIST256p
+from hashlib import sha256
+
 from flask import jsonify
 from functools import reduce
 
@@ -122,7 +125,11 @@ def getTxInAmount(txIn, aUnspentTxOuts):
 
 
 def findUnspentTxOut(transactionId, index, aUnspentTxOuts):
-    return (uTxO for uTxO in aUnspentTxOuts if uTxO.txOutId == transactionId and uTxO.txOutIndex == index)
+    for uTxO in aUnspentTxOuts:
+        if uTxO.txOutId == transactionId and uTxO.txOutIndex == index:
+            return uTxO
+
+    return None
 
 
 def getCoinbaseTransaction(address, blockIndex):
@@ -145,7 +152,7 @@ def signTxIn(transaction, txInIndex, privateKey, aUnspentTxOuts):
     dataToSign = transaction.id
     referencedUnspentTxOut = findUnspentTxOut(txIn.txOutId, txIn.txOutIndex, aUnspentTxOuts)
 
-    if referencedUnspentTxOut == None:
+    if referencedUnspentTxOut is None:
         return None
 
     referencedAddress = referencedUnspentTxOut.address
@@ -155,7 +162,9 @@ def signTxIn(transaction, txInIndex, privateKey, aUnspentTxOuts):
         return None
     """
 
-    return None
+    pk = SigningKey.from_string(bytes.fromhex(privateKey), curve=NIST256p)
+
+    return pk.sign(dataToSign.encode()).hex()
 
 
 def updateUnspentTxOuts(aTransactions, aUnspentTxOuts):
@@ -172,10 +181,10 @@ def updateUnspentTxOuts(aTransactions, aUnspentTxOuts):
         for txI in tx.txIns:
             consumedTxOuts.append(UnspentTxOut(txI.txOutId, txI.txOutIndex, '', 0))
 
-    newUnspentTxOuts = [reduce(lambda x, y: x + y, newUnspentTxOuts)]
+    # newUnspentTxOuts = [reduce(lambda x, y: x + y, newUnspentTxOuts)]
 
     if aUnspentTxOuts:
-        resultingUnspentTxOuts = list(filter(lambda x: x != findUnspentTxOut(x.txOutId, x.txOutIndex, consumedTxOuts), aUnspentTxOuts))
+        resultingUnspentTxOuts = list(filter(lambda x: not findUnspentTxOut(x.txOutId, x.txOutIndex, consumedTxOuts), aUnspentTxOuts))
 
     resultingUnspentTxOuts += newUnspentTxOuts
 

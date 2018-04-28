@@ -54,6 +54,18 @@ class Blockchain(object):
 
         return block
 
+    def newTxBlock(self, receiverAddress, amount):
+        # Replace abc to node owner / miner public address
+        # Replace private key to sender private key
+        coinbaseTx = transaction.getCoinbaseTransaction("abc", len(self.chain) + 1)
+        tx = wallet.createTransaction(receiverAddress, amount, "dd21db0a3f3edeeee812ed7fade40e4979ef0dd3ddedd2c5a09c361c655fbd92", self.unspentTxOuts)
+        if tx:
+            self.newTransaction(coinbaseTx)
+            self.newTransaction(tx)
+            return [coinbaseTx, tx]
+        else:
+            return None
+
     def new_transaction(self, sender, recipient, amount):
         """
         Creates a new transaction to go into the next mined block
@@ -259,10 +271,15 @@ node_identifier = str(uuid4()).replace('-', '')
 blockchain = Blockchain()
 
 
-@app.route('/balance', methods=['GET'])
-def getAccountBalance():
+@app.route('/balance/<address>', methods=['GET'])
+def getAccountBalance(address):
+    """
+    To view Sum of Unspent Transaction Output of abc
+    Example:
+    http://127.0.0.1:5000/balance/abc
+    """
     response = {
-        'balance': wallet.getBalance("abc", blockchain.unspentTxOuts),
+        'balance': wallet.getBalance(address, blockchain.unspentTxOuts),
     }
     return jsonify(response), 200
 
@@ -341,6 +358,77 @@ def consensus():
     return jsonify(response), 200
 
 
+@app.route('/mineTx', methods=['POST'])
+def mineTx():
+    """
+    Make a transaction and mine it to block
+    Example : address = receiver public address , amount = value to send
+    curl -H "Content-type: application/json" --data '{"address": "qwe", "amount" : 51}' http://localhost:5000/mineTx
+    """
+
+    values = request.get_json()
+
+    tx = blockchain.newTxBlock(values['address'], values['amount'])
+
+    if tx:
+
+        while True:
+            last_block = blockchain.last_block
+            previous_hash = blockchain.hash(last_block)
+
+            block = {
+                'index': len(blockchain.chain) + 1,
+                'timestamp': time(),
+                'previous_hash': previous_hash or blockchain.hash(blockchain.chain[-1]),
+                'difficulty': blockchain.get_difficulty(),
+                'nonce': 0,
+                'transactions': blockchain.current_transactions,
+            }
+
+            block = blockchain.proof_of_work(block)
+
+            if block is None:
+                continue
+
+            retVal = transaction.processTransaction(tx, blockchain.unspentTxOuts, len(blockchain.chain) + 1)
+
+            if retVal is None:
+                continue
+
+            blockchain.unspentTxOuts = retVal
+
+            # Forge the new block by adding it to the chain
+            blockchain.new_block(block)
+
+            # We must receive a reward for finding the proof.
+            # The sender is 0 to signify that this node has mined a new coin
+            # This gets added to the next block as to not change the current block
+
+            response = {
+                'message': "New Block Forged",
+                'index': block['index'],
+                'nonce': block['nonce'],
+                'previous_hash': block['previous_hash'],
+                'transactions': block['transactions'],
+            }
+
+            # Update all other nodes
+            nodes = list(blockchain.nodes)
+            data = {
+                "nodes": nodes
+            }
+            headers = {'Content-Type': 'application/json'}
+            for node in blockchain.nodes:
+                r = requests.post(f'{node}nodes/resolve', data=json.dumps(data), headers=headers)
+
+            blockchain.minedBlock = None
+            break
+        return jsonify(block)
+    else:
+        print("Not enough balance")
+        return "error", 400
+
+
 @app.route('/mine', methods=['GET'])
 def mine():
     # Miners reward transaction
@@ -351,6 +439,7 @@ def mine():
         amount=1
     )
     """
+    # Replace abc to node owner / miner public address
     tx = transaction.getCoinbaseTransaction("abc", len(blockchain.chain) + 1)
 
     blockchain.newTransaction(tx)
@@ -433,6 +522,7 @@ def full_chain():
         'length': len(blockchain.chain),
     }
     return jsonify(response), 200
+
 
 if __name__ == '__main__':
     host = '127.0.0.1'
