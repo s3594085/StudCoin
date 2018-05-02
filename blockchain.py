@@ -230,6 +230,7 @@ class Blockchain(object):
                     new_chain = chain
 
         if new_chain:
+            self.recover_orphaned_tx(new_chain)
             self.chain = new_chain
             nodes_toCall = set(self.nodes) - set(skip_nodes)
             headers = {'Content-Type': 'application/json'}
@@ -245,6 +246,47 @@ class Blockchain(object):
 
         return False
 
+    def recover_orphaned_tx(self, new_chain):
+        our_length = len(self.chain) - 1
+
+        first_index_orphaned_blocked = None
+
+        our_block = self.chain[our_length]
+        new_block = new_chain[our_length]
+
+        # If our last block e.g chain[-1] is not in the new chain, it is an orphaned block and
+        # we need to recover the transactions out of it and check if they have been processed in the new block
+        while our_block != new_block:
+            first_index_orphaned_blocked = our_length
+            our_length -= 1
+            if our_length < 0:
+                break
+            our_block = self.chain[our_length]
+            new_block = new_chain[our_length]
+
+        print(first_index_orphaned_blocked)
+        if first_index_orphaned_blocked is None:
+            return
+
+        new_txs = []
+        orphaned_txs = []
+
+        for x in range(first_index_orphaned_blocked, len(new_chain)):
+            txs = new_chain[first_index_orphaned_blocked]['transactions']
+            for tx in txs:
+                new_txs.append(tx)
+
+        for x in range(first_index_orphaned_blocked, len(self.chain)):
+            our_txs = self.chain[first_index_orphaned_blocked]['transactions']
+            for tx in our_txs:
+                if tx not in new_txs:
+                    orphaned_txs.append(tx)
+            first_index_orphaned_blocked += 1
+
+        for tx in orphaned_txs:
+            self.current_transactions.append(tx)
+
+        return
 
 # Instantiate our node
 app = Flask(__name__)
@@ -282,6 +324,11 @@ def consensus():
     length = values.get('length')
     skip_nodes = values.get('nodes')
 
+    if length is None:
+        return jsonify(response={
+            'message': "No Length specified",
+            'chain': blockchain.chain
+        }), 200
     replaced = blockchain.resolve_conflicts(length, skip_nodes)
 
     if replaced:
@@ -398,5 +445,5 @@ def full_chain():
 
 if __name__ == '__main__':
     host = '127.0.0.1'
-    port = 5030
+    port = 5000
     app.run(host, port, threaded=True)
