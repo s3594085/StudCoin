@@ -370,15 +370,17 @@ def full_chain():
     }
     return jsonify(response), 200
 
+
+@app.route('/generateKeyPair', methods=['GET'])
 def generateKeyPair():
     privateKey = SigningKey.generate(curve=NIST256p, hashfunc=sha256)
     publicKey = privateKey.get_verifying_key()
-    return ((privateKey.to_string().hex()),publicKey.to_string().hex())
+    response = {
+        'privateKey': privateKey.to_string().hex(),
+        'publicKey' : publicKey.to_string().hex(),
+    }    
+    return jsonify(response)
 
-def sign(message, privateKeyString):
-   privateKey = SigningKey.from_string(bytes.fromhex(privateKeyString), curve=NIST256p)
-   signature = privateKey.sign(message)
-   
 if __name__ == '__main__':
     host = '127.0.0.1'
     port = 5000
