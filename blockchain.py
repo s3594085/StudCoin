@@ -14,7 +14,6 @@ from transaction import getCoinbaseTransaction
 
 
 class Blockchain(object):
-
     minedBlock = None
     # minerSemaphore
     interrupted = 0
@@ -113,6 +112,7 @@ class Blockchain(object):
     """
     Obtain difficulty from last block
     """
+
     def get_difficulty(self):
         latest_block = self.chain[-1]
         if latest_block['index'] % blockchain.DIFFICULTY_ADJUSTMENT_INTERVAL == 0 and latest_block['index'] != 0:
@@ -223,8 +223,12 @@ class Blockchain(object):
                 if length > max_length and self.valid_chain(chain):
                     max_length = length
                     new_chain = chain
+                    utxo_response = requests.get(f'{node}getUTXO')
+                    if utxo_response.status_code == 200:
+                        blockchain.utxo = utxo_response.json()['utxo']
 
         if new_chain:
+            self.remove_mined_tx(new_chain)
             self.recover_orphaned_tx(new_chain)
             self.chain = new_chain
             nodes_toCall = set(self.nodes) - set(skip_nodes)
@@ -235,11 +239,27 @@ class Blockchain(object):
             }
             for node in nodes_toCall:
                 r = requests.post(f'{node}nodes/resolve', data=json.dumps(data), headers=headers)
-                print(r.json)
                 self.interrupted = 1
             return True
 
         return False
+
+    def remove_mined_tx(self, new_chain):
+        new_length = len(new_chain) - 1
+
+        print("HEEEEEEEEEEERRRRRRRRRE")
+        print (new_length, " ", len(self.chain))
+        while new_length != len(self.chain) - 1:
+            txs = new_chain[new_length]['transactions']
+            for tx in txs:
+                print(tx)
+                if tx in blockchain.current_transactions:
+                    blockchain.current_transactions.remove(tx)
+            new_length -= 1
+
+        print("ENDDDDDDDDDDDDDDDDD")
+
+
 
     def recover_orphaned_tx(self, new_chain):
         our_length = len(self.chain) - 1
@@ -259,7 +279,6 @@ class Blockchain(object):
             our_block = self.chain[our_length]
             new_block = new_chain[our_length]
 
-        print(first_index_orphaned_blocked)
         if first_index_orphaned_blocked is None:
             return
 
@@ -294,11 +313,12 @@ class Blockchain(object):
             print('invalid key')
             return False
 
+
 # Instantiate our node
 app = Flask(__name__)
 
 # Generate a globally unique address for this node
-node_identifier = "000116e05a02f0f2b553c041e060ac036b8ebaa1dde1da711b9f6db6c70a6db1b6f50e940246e7e28f908477da6ec982cad2c744610550b65617a19d8fa328b9" #str(uuid4()).replace('-', '')
+node_identifier = "000116e05a02f0f2b553c041e060ac036b8ebaa1dde1da711b9f6db6c70a6db1b6f50e940246e7e28f908477da6ec982cad2c744610550b65617a19d8fa328b9"  # str(uuid4()).replace('-', '')
 
 # Instantiate our blockchain
 blockchain = Blockchain()
@@ -378,11 +398,9 @@ def mine():
         for tx in block['transactions']:
             for txout in tx['txOuts']:
                 if txout['address'] == node_identifier:
-                    if node_identifier in blockchain.utxo:
-                        blockchain.utxo[node_identifier].append(txout)
-                    else:
+                    if node_identifier not in blockchain.utxo:
                         blockchain.utxo[node_identifier] = list()
-                        blockchain.utxo[node_identifier].append(txout)
+                    blockchain.utxo[node_identifier].append(txout)
 
         # Forge the new block by adding it to the chain
         blockchain.new_block(block)
@@ -416,10 +434,13 @@ def mine():
         break
     return jsonify(block)
 
+
 @app.route('/transactions/new', methods=['POST'])
 def new_transaction():
     values = request.get_json()
-    skip_nodes = values.get('nodes')
+    skip_nodes = set(values.get('nodes'))
+    skip_nodes.add(f'http://{host}:{port}/')
+
 
     # Check that all required fields are present
     required = ['nodes', 'signature', 'message', 'publickey', 'recipient', 'amount']
@@ -434,14 +455,20 @@ def new_transaction():
     if getBalance(values['publickey'], blockchain.utxo) < values['amount']:
         return 'Insufficient Balance', 402
 
-    tx = createTransaction(values['recipient'], values['amount'], values['publickey'], blockchain.utxo)
+    tx = createTransaction(values['recipient'], values['amount'], values['publickey'], blockchain.utxo).toJSON()
 
     # Creates a new transaction
-    index = blockchain.new_transaction(tx.toJSON())
+    index = blockchain.new_transaction(tx)
+    for txout in tx['txOuts']:
+        if values['recipient'] not in blockchain.utxo:
+            blockchain.utxo[values['recipient']] = list()
+        blockchain.utxo[values['recipient']].append(txout)
+
+    for txin in tx['txIns']:
+            blockchain.utxo[values['publickey']].remove(txin)
 
     headers = {'Content-Type': 'application/json'}
-    nodes_toCall = blockchain.nodes - set(skip_nodes)
-    print(skip_nodes)
+    nodes_to_call = blockchain.nodes - set(skip_nodes)
     data = {
         "publickey": values['publickey'],
         "recipient": values['recipient'],
@@ -450,7 +477,7 @@ def new_transaction():
         "amount": values['amount'],
         "nodes": list(set(skip_nodes) | blockchain.nodes),
     }
-    for node in nodes_toCall:
+    for node in nodes_to_call:
         r = requests.post(f'{node}transactions/new', data=json.dumps(data), headers=headers)
 
     response = {'message': f'Transaction will be added to Block {index}'}
@@ -464,6 +491,15 @@ def full_chain():
         'length': len(blockchain.chain),
     }
     return jsonify(response), 200
+
+
+@app.route('/getUTXO', methods=['GET'])
+def get_UTXO():
+    response = {
+        'utxo': blockchain.utxo
+    }
+    return jsonify(response), 200
+
 
 if __name__ == '__main__':
     host = '127.0.0.1'
