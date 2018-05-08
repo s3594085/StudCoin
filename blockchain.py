@@ -8,6 +8,9 @@ from textwrap import dedent
 from uuid import uuid4
 from flask import Flask, jsonify, request
 from urllib.parse import urlparse
+from ecdsa import SigningKey, VerifyingKey, NIST256p
+from wallet import createTransaction, getBalance
+from transaction import getCoinbaseTransaction
 
 
 class Blockchain(object):
@@ -20,6 +23,7 @@ class Blockchain(object):
     def __init__(self):
         self.chain = []
         self.current_transactions = []
+        self.utxo = dict()
 
         # Creates the genesis block
         block = {
@@ -51,7 +55,7 @@ class Blockchain(object):
 
         return block
 
-    def new_transaction(self, sender, recipient, amount):
+    def new_transaction(self, tx):
         """
         Creates a new transaction to go into the next mined block
 
@@ -60,17 +64,8 @@ class Blockchain(object):
         :param amount: <int> Amount
         :return <int> The index of the block which will contain the transaction
         """
-        transaction = {
-            'sender': sender,
-            'recipient': recipient,
-            'amount': amount,
-        }
-        if transaction not in self.current_transactions:
-            self.current_transactions.append({
-                'sender': sender,
-                'recipient': recipient,
-                'amount': amount,
-            })
+        if tx not in self.current_transactions:
+            self.current_transactions.append(tx)
 
         return self.last_block['index'] + 1
 
@@ -288,11 +283,22 @@ class Blockchain(object):
 
         return
 
+    def verify(self, signature, message, publicKey):
+        try:
+            signature = bytes.fromhex(signature)
+            message = message.encode()
+            publicKey = VerifyingKey.from_string(bytes.fromhex(publicKey), curve=NIST256p)
+            return publicKey.verify(signature, message)
+
+        except AssertionError:
+            print('invalid key')
+            return False
+
 # Instantiate our node
 app = Flask(__name__)
 
 # Generate a globally unique address for this node
-node_identifier = str(uuid4()).replace('-', '')
+node_identifier = "000116e05a02f0f2b553c041e060ac036b8ebaa1dde1da711b9f6db6c70a6db1b6f50e940246e7e28f908477da6ec982cad2c744610550b65617a19d8fa328b9" #str(uuid4()).replace('-', '')
 
 # Instantiate our blockchain
 blockchain = Blockchain()
@@ -349,11 +355,7 @@ def consensus():
 @app.route('/mine', methods=['GET'])
 def mine():
     # Miners reward transaction
-    blockchain.new_transaction(
-        sender="0",
-        recipient=node_identifier,
-        amount=1
-    )
+    blockchain.new_transaction(getCoinbaseTransaction(node_identifier, len(blockchain.chain) + 1).toJSON())
 
     # We run the proof of work algorithm to get the next proof
     while True:
@@ -372,6 +374,15 @@ def mine():
 
         if block is None:
             continue
+
+        for tx in block['transactions']:
+            for txout in tx['txOuts']:
+                if txout['address'] == node_identifier:
+                    if node_identifier in blockchain.utxo:
+                        blockchain.utxo[node_identifier].append(txout)
+                    else:
+                        blockchain.utxo[node_identifier] = list()
+                        blockchain.utxo[node_identifier].append(txout)
 
         # Forge the new block by adding it to the chain
         blockchain.new_block(block)
@@ -405,26 +416,37 @@ def mine():
         break
     return jsonify(block)
 
-
 @app.route('/transactions/new', methods=['POST'])
 def new_transaction():
     values = request.get_json()
     skip_nodes = values.get('nodes')
 
     # Check that all required fields are present
-    required = ['sender', 'recipient', 'amount']
+    required = ['nodes', 'signature', 'message', 'publickey', 'recipient', 'amount']
     if not all(k in values for k in required):
+        print("nah1")
         return 'Missing values', 400
 
+    if not blockchain.verify(values['signature'], values['message'], values['publickey']):
+        print("nah")
+        return 'Invalid Signature', 401
+
+    if getBalance(values['publickey'], blockchain.utxo) < values['amount']:
+        return 'Insufficient Balance', 402
+
+    tx = createTransaction(values['recipient'], values['amount'], values['publickey'], blockchain.utxo)
+
     # Creates a new transaction
-    index = blockchain.new_transaction(values['sender'], values['recipient'], values['amount'])
+    index = blockchain.new_transaction(tx.toJSON())
 
     headers = {'Content-Type': 'application/json'}
     nodes_toCall = blockchain.nodes - set(skip_nodes)
     print(skip_nodes)
     data = {
-        "sender": values['sender'],
+        "publickey": values['publickey'],
         "recipient": values['recipient'],
+        "message": values['message'],
+        "signature": values['signature'],
         "amount": values['amount'],
         "nodes": list(set(skip_nodes) | blockchain.nodes),
     }
@@ -445,5 +467,5 @@ def full_chain():
 
 if __name__ == '__main__':
     host = '127.0.0.1'
-    port = 5000
+    port = 5010
     app.run(host, port, threaded=True)
