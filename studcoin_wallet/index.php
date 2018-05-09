@@ -83,7 +83,7 @@
 
 <script>
 /* Global Declaration */
-var curve = "secp256r1";
+var curve = "NIST P-256";
 var hashFunc = "SHA256withECDSA";
 var pubKey = null;
 var privKey = null;
@@ -95,6 +95,8 @@ $("#new").click(function(){
     
     $('.verify').show();
     $('.verified').hide();
+    
+    $('.sent').hide();
     
     clear();
 });
