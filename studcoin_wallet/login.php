@@ -25,20 +25,27 @@
                 </div>
 
                 <!-- Detail Form -->
-                <div class="verify">
+                <div class="login">
                     <div class="existing">
-                        <input type="text" id="public" class="fadeIn second" name="public" placeholder="Enter your public key">
-                        <input type="text" id="private" class="fadeIn second" name="private" placeholder="Enter your private key">
+                        <input type="text" id="username" class="fadeIn second" name="public" placeholder="Enter your username">
+                        <input type="text" id="password" class="fadeIn second" name="private" placeholder="Enter your password">
                         </br></br>
-                        <input id="verify" type="submit" class="fadeIn second" value="Get Verify">
+                        <input id="login" type="submit" class="fadeIn second" value="Login">
                     </div>
                     
                     <div class="new" style="display:None">
+                        <input type="text" id="username" class="fadeIn second" name="public" placeholder="Enter your username">
+                        <input type="text" id="password" class="fadeIn second" name="private" placeholder="Enter your email">
+                        <input type="password" id="password" class="fadeIn second" name="private" placeholder="Enter your password">
+                        <input type="password" id="password" class="fadeIn second" name="private" placeholder="Confirm your password">
+                        <input id="register" type="submit" class="fadeIn second" value="Register">    
                         <input id="keypair" type="submit" class="fadeIn first" value="Generate">
                     </div>
                     
                     <div class="keypair" style="display:None">
                         <h5>Public Key</h5>
+
+
                         <input type="text" id="publicK" class="fadeIn first" readonly>
                         <h5>Private Key</h5>
                         <input type="text" id="privateK" class="fadeIn first" readonly>
@@ -56,6 +63,8 @@
                     <input type="text" id="amount" class="fadeIn second" name="public" placeholder="Amount to send">
                     </br></br>
                     <input id="send" type="submit" class="fadeIn second" value="Send">
+                    <h5>Or</h5>
+                     <input id="shopping" type="submit" class="fadeIn second" value="Go Shopping">
                 </div>
                 
                 <div class="sent" style="display:None">
@@ -72,7 +81,7 @@
                 
                 <!-- Footer -->
                 <div id="formFooter" class="existing">
-                    <button id="new" class="underlineHover nbtn">New Wallet!</button>
+                    <button id="new" class="underlineHover nbtn">New User</button>
                 </div>
                 
                 <div id="formFooter" class="new" style="display:None">
@@ -102,6 +111,11 @@ $("#new").click(function(){
     clear();
 });
 
+$('#register').click(function(){
+    $('.new').hide(); 
+
+});
+
 $("#existing").click(function(){
     $('.existing').show();
     $('.new').hide();
@@ -126,12 +140,27 @@ $("#keypair").click(function(){
     $("#privateK").val(privateK);
 });
 
-$("#verify").click(function(){
-    pubKey = $("#public").val();
-    privKey = $("#private").val();
+$("#login").click(function(){
+    //go to php and make a request 
+    var username = $('#username').val(); 
+    var password = $('#password').val(); 
+    $.post('loginProcessing.php',{username: username, password:password})
+        .done(function(data){
+            if($.trim(data)=="The username and password do not match"){
+                alert(data); 
+            }
+            else{
+                $('.login').hide();
+                $('.verified').show();
+            }        
+           
+        });
+
+
+  
     
     if (verifyKeyPair()) {
-        $('.verify').hide();
+        $('.login').hide();
         $('.verified').show();
         
         var server = "127.0.0.1";
@@ -146,7 +175,11 @@ $("#verify").click(function(){
         alert("Public Key & Private Key are not compatible!");
     }
 });
+$("#shopping").click(function(){
+    window.location.replace('index.php'); 
 
+
+});
 $("#send").click(function(){
     var recipient = $("#recipient").val();
     var amount = $("#amount").val();

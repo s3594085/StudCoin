@@ -1,5 +1,5 @@
 <?php 
-
+session_start(); 
 
 
 if(isset($_POST['loadItems'])){
@@ -37,20 +37,30 @@ function getItem($itemID){
 
         $html .= ' <div class ="row">';
         foreach($itemsList as $item){
-            
             $html .= '<div class="col-sm-6 col-md-4 col-lg-3 p-b-50">';
-            $html .= '<form action="payment.php" method="get">'; 
-            $html .= '<div class="block" id="item1">'; 
+            $html .= '<div class="row">';
+            $html .= '<div class="block" id="item1">';
+            $html .= '<div class="col-sm-4">';
             $html .= '<div class="block-img wrap-pic-w of-hidden pos-relative block-labelnew">';
             $html .= '<img src="' . $item['img'] . '" alt="IMG-PRODUCT"class="img-fluid">'; 
             $html .= ' </div>'; 
+            $html .= ' </div>'; 
+            $html .= '<div class="col-sm-4">';
             $html .= '<p>' . $item['itemName'] . '</p>';    
-            $html .= '<p>' . $item['amt'] . '</p'; 
-            $html .= '<input type="hidden" id="item' . $item['itemID'] .'_price" value ="'. $item['amt'].'">'; 
-            $html .= '<input type="hidden" id="item' . $item['itemID'] .'_name" value ="'. $item['name'].'">'; 
-            $html .= '<button  class="bg-success" type="submit" id="buyButton" onclick="add(' . $item['itemID'] .')">Buy</button>'; 
             $html .= '</div>'; 
-            $html .= '</form>'; 
+            $html .= '<div class="col-sm-4">';
+            $html .= '<p>' . $item['amt'] . '</p'; 
+            $html .= ' </div>'; 
+            
+            $html .= '<input type="hidden" id="item' . $item['itemID'] .'_price" value ="'. $item['amt'].'">'; 
+           
+           
+            
+            $html .= '<input type="hidden" id="item' . $item['itemID'] .'_name" value ="'. $item['name'].'">';
+
+           $html .= '</div>';
+            $html .= '</div>'; 
+            $html .= '</div>'; 
             $html .= '</div>'; 
             
         }
@@ -58,6 +68,8 @@ function getItem($itemID){
         echo($html);                 
 }    
 function getAllUserPurchases($userID){
+    var_dump($userID); 
+
     $file_db = new PDO('sqlite:db_test.db');
     $file_db->setAttribute(PDO::ATTR_ERRMODE,
     PDO::ERRMODE_EXCEPTION); 
@@ -66,7 +78,7 @@ function getAllUserPurchases($userID){
         SELECT items.*
         FROM items
         INNER JOIN solditems ON items.itemID == soldItems.itemID
-        WHERE soldItems.buyerID=$userID
+        WHERE soldItems.buyerID=='{$_SESSION['publicKey']}'
     "); 
     $itemsList = array(); 
     foreach($result as $row){
@@ -109,6 +121,7 @@ function getAllUserPurchases($userID){
             }
             $html .= '</div>'; 
             $html .= '</div>'; 
+            $html .= '</div>'; 
             $html .= '</form>'; 
             $html .= '</div>'; 
     }
@@ -117,20 +130,27 @@ function getAllUserPurchases($userID){
 }
 
 function updateStatusValue($requestedItemID){
+    $publicKey = $_SESSION['publicKey']; 
+
     $file_db = new PDO('sqlite:db_test.db');
     $file_db->setAttribute(PDO::ATTR_ERRMODE,
     PDO::ERRMODE_EXCEPTION); 
-
+    var_dump($publicKey); 
     $file_db->exec(
         "UPDATE items 
         SET status='pending'
         WHERE itemID == $requestedItemID 
     ");
+    // $file_db->exec(
+    //     "UPDATE soldItems 
+    //     SET status='pending' 
+    //     WHERE itemID == $requestedItemID 
+    // ");
     $file_db->exec(
-        "UPDATE soldItems 
-        SET status='pending' 
-        WHERE itemID == $requestedItemID 
-    ");
+        "INSERT INTO soldItems(itemID, buyerID, status)
+         VALUES ($requestedItemID, '{$_SESSION['publicKey']}', 'pending')
+        ");  
+
 }
 
 function fetchItems(){
@@ -164,12 +184,20 @@ function printItems($itemsList){
             $html .= '<div class="block-img wrap-pic-w of-hidden pos-relative block-labelnew">';
             $html .= '<img src="' . $item['img'] . '" alt="IMG-PRODUCT"class="img-fluid">'; 
             $html .= ' </div>'; 
+            $html .= '<div class="row">'; 
+            $html .= '<div class="col-sm-6">';
             $html .= '<p>' . $item['itemName'] . '</p>';    
-            $html .= '<p>' . $item['amt'] . '</p>'; 
+            $html .= '<p>' . $item['amt'] . '</p>';
+            $html .= '</div>';  
             $html .= '<input type="hidden" name="requestedItemID" value="' . $item['itemID'] . '">'; 
-            $html .= '<input type="hidden" id="item' . $item['itemID'] . '_price" value ="' . $item['amt'] . '">'; 
+            $html .= '<input type="hidden" name="amt" id="item' . $item['itemID'] . '_price" value ="' . $item['amt'] . '">'; 
             $html .= '<input type="hidden" id="item' . $item['itemID'] .'_name" value ="'. $item['itemName'].'">'; 
-            $html .= '<button  class="bg-success" type="submit" name="itemName" id="buyButton" onclick="add(' . $item['itemID'] .')">Buy</button>'; 
+            $html .= '<input type="hidden" name="seller" id="item' . $item['itemID'] .'seller" value ="'. $item['sellerPublicKey'].'">'; 
+            
+            $html.= '<div class="col-sm-6">';
+            $html .= '<button  class="float-right btn btn-lg bg-success" type="submit" name="itemName" id="buyButton" onclick="add(' . $item['itemID'] .')">Buy</button>'; 
+            $html .= '</div>';
+            $html .= '</div>'; 
             $html .= '</div>'; 
             $html .= '</form>'; 
             $html .= '</div>'; 

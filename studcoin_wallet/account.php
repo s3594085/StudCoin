@@ -40,8 +40,9 @@
         
    
 <script>
+	var publicKey = '<?php echo $_SESSION['publicKey'];?>';
 	window.onload = function(){
-		$.post('storeData.php', {getAllUserPurchases: 'true', userID:'12'})
+		$.post('storeData.php', {getAllUserPurchases: 'true', userID: publicKey})
 			.done(function(data){
 				$('#userItems').html(data); 
 			});
