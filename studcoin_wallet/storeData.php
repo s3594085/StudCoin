@@ -34,38 +34,27 @@ function getItem($itemID){
             array_push($itemsList, $item); 
             
         }  
-
-        $html .= ' <div class ="row">';
-        foreach($itemsList as $item){
-            $html .= '<div class="col-sm-6 col-md-4 col-lg-3 p-b-50">';
-            $html .= '<div class="row">';
-            $html .= '<div class="block" id="item1">';
-            $html .= '<div class="col-sm-4">';
-            $html .= '<div class="block-img wrap-pic-w of-hidden pos-relative block-labelnew">';
-            $html .= '<img src="' . $item['img'] . '" alt="IMG-PRODUCT"class="img-fluid">'; 
-            $html .= ' </div>'; 
-            $html .= ' </div>'; 
-            $html .= '<div class="col-sm-4">';
-            $html .= '<p>' . $item['itemName'] . '</p>';    
-            $html .= '</div>'; 
-            $html .= '<div class="col-sm-4">';
-            $html .= '<p>' . $item['amt'] . '</p'; 
-            $html .= ' </div>'; 
-            
-            $html .= '<input type="hidden" id="item' . $item['itemID'] .'_price" value ="'. $item['amt'].'">'; 
-           
-           
-            
-            $html .= '<input type="hidden" id="item' . $item['itemID'] .'_name" value ="'. $item['name'].'">';
-
-           $html .= '</div>';
-            $html .= '</div>'; 
-            $html .= '</div>'; 
-            $html .= '</div>'; 
-            
-        }
-        $html .= '</div>';     
-        echo($html);                 
+    $html .= '<div class="row">';
+    $html .= '<div class="container col-sm-5 offset-md-3 row">';
+    $html .= '<span class ="container col-sm-4">Item</span>';
+    $html .= '<span class ="container col-sm-4">Name</span>';
+    $html .= '<span class ="container col-sm-4">Price</span>';
+    foreach($itemsList as $item){
+        $html .='<div class ="container col-sm-4">';
+        $html .='<div class="block-img wrap-pic-w of-hidden pos-relative block-labelnew">';
+        $html .='<img src="'. $item['img'] .'"alt="IMG-PRODUCT"class="img-fluid">'; 
+        $html .='</div>';
+        $html .='</div>'; 
+        $html .='          <div class ="container col-sm-4 my-auto">';
+        $html .='              <span>'. $item['itemName'] .'</span>';
+        $html .='          </div>'; 
+        $html .='          <div class ="container col-sm-4 my-auto">'; 
+        $html .='                  <span>'. $item['amt'] .'</span>';
+        $html .='          </div>';  
+        $html .='       </div>'; 
+    }  
+    $html.=' </div>'; 
+    echo($html);                 
 }    
 function getAllUserPurchases($userID){
     var_dump($userID); 
@@ -101,7 +90,7 @@ function getAllUserPurchases($userID){
     foreach($itemsList as $item){  
             $html .= '<div class="col-sm-6 col-md-4 col-lg-3 p-b-50">';
             $html .= '<form action="payment.php" method="get">'; 
-            $html .= '<div class="block" id="item1">'; 
+            $html .= '<div class="block mh-100" id="item1">'; 
             $html .= '<div class="block-img wrap-pic-w of-hidden pos-relative block-labelnew">';
             $html .= '<img src="' . $item['img'] . '" alt="IMG-PRODUCT"class="img-fluid">'; 
             $html .= ' </div>'; 
@@ -117,7 +106,7 @@ function getAllUserPurchases($userID){
             if($item['status']=='pending'){
                 $html .= '<button type="button" class="float-right btn btn-lg btn-warning" disabled>Pending</button>';
             }elseif($item['status']=='purchased'){
-                $html .= '<button type="button" class="float-right btn btn-lg btn-danger" disabled>Pending</button>';
+                $html .= '<button type="button" class="float-right btn btn-lg btn-success" disabled>Yours</button>';
             }
             $html .= '</div>'; 
             $html .= '</div>'; 
@@ -135,17 +124,11 @@ function updateStatusValue($requestedItemID){
     $file_db = new PDO('sqlite:db_test.db');
     $file_db->setAttribute(PDO::ATTR_ERRMODE,
     PDO::ERRMODE_EXCEPTION); 
-    var_dump($publicKey); 
     $file_db->exec(
         "UPDATE items 
         SET status='pending'
         WHERE itemID == $requestedItemID 
     ");
-    // $file_db->exec(
-    //     "UPDATE soldItems 
-    //     SET status='pending' 
-    //     WHERE itemID == $requestedItemID 
-    // ");
     $file_db->exec(
         "INSERT INTO soldItems(itemID, buyerID, status)
          VALUES ($requestedItemID, '{$_SESSION['publicKey']}', 'pending')

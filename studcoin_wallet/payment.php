@@ -7,25 +7,30 @@ var_dump($_SESSION);
 <html lang="en">
 <script language='JavaScript' type='text/javascript' src='https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/8.0.4/jsrsasign-all-min.js'></script>
     </head>
-<?php echo($_SESSION);?>
 <?php include('include/head.inc.php');?>
 <link rel="stylesheet" type="text/css" href="css/payment.css">
 <?php include('include/nav.inc.php');?>
 <body>
-    <div class ="row container">
-      <div class ="container col-md-6"> 
-          <div id="item">
-              <?php
-                include('storeData.php'); 
-                getItem($_GET['requestedItemID']);  
-                $_SESSION['cart']['itemID'] = $_GET['requestedItemID'];  
-                $_SESSION['cart']['seller'] = $_GET['seller']; 
-                $_SESSION['cart']['amt'] = $_GET['amt'];
-              ?>   
-          </div>
-      </div>
-      <div class="container col-md-6">
-          <!-- <form id="userForm" action="formProcess.php" method="post"> -->
+    
+  
+
+
+
+    
+
+    <div class ="row ">
+        <div class ="col-sm-12 col-md-12 "> 
+              <div id="item">
+                  <?php
+                    include('storeData.php'); 
+                    getItem($_GET['requestedItemID']);  
+                    $_SESSION['cart']['itemID'] = $_GET['requestedItemID'];  
+                    $_SESSION['cart']['seller'] = $_GET['seller']; 
+                    $_SESSION['cart']['amt'] = $_GET['amt'];
+                  ?>   
+              </div>
+        </div>
+        <div class="container col-sm-6 col-md-6">
               <div id='keysForm'>
                  
                   <p>Public Key</p> 
@@ -34,18 +39,15 @@ var_dump($_SESSION);
                   <input type="text" id="privateKey"style="width:450px;">
                   <!-- <input type="file"> -->
               </div> 
-      
-          <div class="form-group">
-              <div class="col-sm-offset-2 col-sm-10">
-                <div class="pull-right">
-                  <button type="submit" class="btn btn-default">Cancel</button>
-                  <button type="submit" id="checkout" class="btn btn-success"">Buy</button>
-                  <input type="button" name="next" class="next" value="Next" />
-                </div>
+              <div class="form-group">
+                  <div class="col-sm-offset-2 col-sm-10">
+                    <div class="pull-right">
+                          <button type="submit" id="checkout" class="btn btn-success"">Buy</button>
+                          <button type="submit" id="cancel" class="btn btn-default">Cancel</button>
+                    </div>
+                  </div>
               </div>
-          </div>
-        <!-- </form>  -->
-      </div>   
+        </div>   
     </div>
             
 
@@ -56,15 +58,10 @@ var_dump($_SESSION);
   var privKey; 
   var curve = "NIST P-256";
   var hashFunc = "SHA256withECDSA";
-  
-  $(".next").click(function(){
-    $('#addressForm').show();
-    $('#keysForm').hide(); 
-    alert('.....');
-      
+   
+  $("#cancel").click(function(){
+      window.location = 'index.php'; 
   });
-
-
   $("#checkout").click(function(){
     privKey = $.trim($('#privateKey').val()); 
     //validate keypair first

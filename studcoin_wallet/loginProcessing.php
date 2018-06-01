@@ -4,29 +4,42 @@
 	session_start(); 
 	$username = $_POST['username']; 
 	$password = $_POST['password']; 
-	
-	// $username = 'tom'; 
-	// $password = 'tom'; 
-    $pwdmd5 = md5($password);
-    
-	$file_db = new PDO('sqlite:db_test.db');
-	$file_db->setAttribute(PDO::ATTR_ERRMODE,
-	PDO::ERRMODE_EXCEPTION); 
-	$qry = "SELECT username, publicKey
-		FROM account
-		WHERE username='$username' AND password='$pwdmd5'";  
-	$result = $file_db->query($qry);
-	$row = $result->fetch();
-	if(!$result || $row<=0 ){
-		echo "The username and password do not match";
-	}else{
-		$publicKey = $row['publicKey']; 
-		$username =	$row['username']; 	
-		$_SESSION['publicKey'] = $publicKey;
-		$_SESSION['username'] = $username; 
-		$_SESSION['utxo'] = getUTXO('000116e05a02f0f2b553c041e060ac036b8ebaa1dde1da711b9f6db6c70a6db1b6f50e940246e7e28f908477da6ec982cad2c744610550b65617a19d8fa328b9');
-		var_dump($_SESSION); 	
+	$pwdmd5 = md5($password);
+	if(isset($_POST['login'])){
+		$file_db = new PDO('sqlite:db_test.db');
+		$file_db->setAttribute(PDO::ATTR_ERRMODE,
+		PDO::ERRMODE_EXCEPTION); 
+		$qry = "SELECT username, publicKey
+			FROM account
+			WHERE username='$username' AND password='$pwdmd5'";  
+		$result = $file_db->query($qry);
+		$row = $result->fetch();
+		if(!$result || $row<=0 ){
+			echo "The username and password do not match";
+		}else{
+			$publicKey = $row['publicKey']; 
+			$username =	$row['username']; 	
+			$_SESSION['publicKey'] = $publicKey;
+			$_SESSION['username'] = $username; 
+			$_SESSION['utxo'] = getUTXO('000116e05a02f0f2b553c041e060ac036b8ebaa1dde1da711b9f6db6c70a6db1b6f50e940246e7e28f908477da6ec982cad2c744610550b65617a19d8fa328b9');
+		}
+	}elseif(isset($_POST['newUser'])){
+		$username = $_POST['username']; 
+		$password = md5($_POST['password']); 
+		$email = $_POST['email']; 
+		$publicKey = $_POST['pubKey']; 
+
+		$file_db = new PDO('sqlite:db_test.db');
+		$file_db->setAttribute(PDO::ATTR_ERRMODE,
+		PDO::ERRMODE_EXCEPTION); 
+		$qry = "INSERT INTO account(email, username, password,publicKey)
+		VALUES ('$email', '$username', '$password', '$publicKey')";  
+		$file_db->exec($qry);
 	}
+	
+    
+    
+	
 
 	
 	//------------------------------------HC------------------------------------
@@ -47,6 +60,15 @@
 				}
 			}}
 	}
+
+	
+
+
+
+
+
+
+
 	
 
 ?> 

@@ -34,21 +34,19 @@
                     </div>
                     
                     <div class="new" style="display:None">
-                        <input type="text" id="username" class="fadeIn second" name="public" placeholder="Enter your username">
-                        <input type="text" id="password" class="fadeIn second" name="private" placeholder="Enter your email">
-                        <input type="password" id="password" class="fadeIn second" name="private" placeholder="Enter your password">
-                        <input type="password" id="password" class="fadeIn second" name="private" placeholder="Confirm your password">
+                        <input type="text" id="newUsername" class="fadeIn second" name="public" placeholder="Enter your username">
+                        <input type="text" id="email" class="fadeIn second" name="private" placeholder="Enter your email">
+                        <input type="password" id="newPassword" class="fadeIn second" name="private" placeholder="Enter your password">
+                        <input type="password" id="confirmPassword" class="fadeIn second" name="private" placeholder="Confirm your password">
                         <input id="register" type="submit" class="fadeIn second" value="Register">    
-                        <input id="keypair" type="submit" class="fadeIn first" value="Generate">
                     </div>
                     
                     <div class="keypair" style="display:None">
                         <h5>Public Key</h5>
-
-
                         <input type="text" id="publicK" class="fadeIn first" readonly>
                         <h5>Private Key</h5>
                         <input type="text" id="privateK" class="fadeIn first" readonly>
+                         <input id="returnLogin" type="submit" class="fadeIn second" value="Login">
                         <br><br>
                     </div>
                 </div>
@@ -99,6 +97,13 @@ var pubKey = null;
 var privKey = null;
 
 /* Actions */
+
+$("#returnLogin").click(function(){
+     $('.keypair').hide();
+     $('.existing').show();
+
+});
+
 $("#new").click(function(){
     $('.new').show();
     $('.existing').hide();
@@ -112,7 +117,47 @@ $("#new").click(function(){
 });
 
 $('#register').click(function(){
+    //validate the form 
+    var username = $('#newUsername').val(); 
+    var email  = $('#email').val(); 
+    var password = $('#newPassword').val();
+    var confirmPassword = $('#confirmPassword').val(); 
+    
+     
+    
+    if(username==""||email==""||password==""||confirmPassword==""){
+        alert('One of the fields is empty');
+        return; 
+    }
+
+
+
     $('.new').hide(); 
+    $('.keypair').show();
+    var kp = generateKeyPair();
+    
+    // Generating Public Key
+    var publicK = kp.ecpubhex;
+    
+    // Generating Private Key
+    var privateK = kp.ecprvhex;
+    
+    $("#publicK").val(publicK);
+    $("#privateK").val(privateK)
+
+    $.post('loginProcessing.php', 
+        {newUser: 'true',
+        username: username,
+        password: password,
+        email: email,
+        pubKey: publicK
+        })
+    .done(function(data){
+        alert(data); 
+    });
+
+
+
 
 });
 
@@ -144,7 +189,7 @@ $("#login").click(function(){
     //go to php and make a request 
     var username = $('#username').val(); 
     var password = $('#password').val(); 
-    $.post('loginProcessing.php',{username: username, password:password})
+    $.post('loginProcessing.php',{login: 'true', username: username, password:password})
         .done(function(data){
             if($.trim(data)=="The username and password do not match"){
                 alert(data); 
