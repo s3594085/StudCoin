@@ -12,7 +12,6 @@ from ecdsa import SigningKey, VerifyingKey, NIST256p
 from wallet import createTransaction, getBalance
 from transaction import getCoinbaseTransaction
 
-
 class Blockchain(object):
     minedBlock = None
     # minerSemaphore
@@ -257,10 +256,6 @@ class Blockchain(object):
                     blockchain.current_transactions.remove(tx)
             new_length -= 1
 
-        print("ENDDDDDDDDDDDDDDDDD")
-
-
-
     def recover_orphaned_tx(self, new_chain):
         our_length = len(self.chain) - 1
 
@@ -302,12 +297,13 @@ class Blockchain(object):
 
         return
 
-    def verify(self, signature, message, publicKey):
+    def verify(self, signature, message, publickey):
         try:
-            signature = bytes.fromhex(signature)
-            message = message.encode()
-            publicKey = VerifyingKey.from_string(bytes.fromhex(publicKey), curve=NIST256p)
-            return publicKey.verify(signature, message)
+            signatureHex = bytes.fromhex(signature)
+            messageString = json.dumps(message, sort_keys=True).encode()
+            demomsg = message['string'].encode()
+            publicKeySig = VerifyingKey.from_string(bytes.fromhex(publickey), curve=NIST256p)
+            return publicKeySig.verify(signatureHex, demomsg)
 
         except AssertionError:
             print('invalid key')
@@ -369,7 +365,20 @@ def consensus():
             'chain': blockchain.chain
         }
 
+    return jsonify(response),
+
+@app.route('/getBalance', methods=['POST'])
+def balance():
+    values = request.get_json()
+    publickey = values['publickey']
+    balance = getBalance(publickey, blockchain.utxo)
+
+    response = {
+        "balance": balance
+    }
+
     return jsonify(response), 200
+
 
 
 @app.route('/mine', methods=['GET'])
@@ -437,50 +446,62 @@ def mine():
 
 @app.route('/transactions/new', methods=['POST'])
 def new_transaction():
+    print("1")
     values = request.get_json()
+    print("2")
     skip_nodes = set(values.get('nodes'))
     skip_nodes.add(f'http://{host}:{port}/')
 
-
     # Check that all required fields are present
-    required = ['nodes', 'signature', 'message', 'publickey', 'recipient', 'amount']
+    required = ['nodes', 'signature', 'message']
     if not all(k in values for k in required):
-        print("nah1")
-        return 'Missing values', 400
+        return 'Missing values', 401
 
-    if not blockchain.verify(values['signature'], values['message'], values['publickey']):
+
+    message = values['message']
+    publickey = message['publickey']
+    recipient = message['recipient']
+    amount = message['amount']
+
+    if not isinstance(amount, int):
+        return 'invalid amount', 403
+
+    if amount <= 0:
+        return 'Amount cannot be negative', 404
+
+    if not blockchain.verify(values['signature'], message, publickey):
         print("nah")
         return 'Invalid Signature', 401
 
-    if getBalance(values['publickey'], blockchain.utxo) < values['amount']:
+    if getBalance(publickey, blockchain.utxo) < amount:
         return 'Insufficient Balance', 402
 
-    tx = createTransaction(values['recipient'], values['amount'], values['publickey'], blockchain.utxo).toJSON()
+    tx = createTransaction(recipient, amount, publickey, blockchain.utxo).toJSON()
 
     # Creates a new transaction
     index = blockchain.new_transaction(tx)
-    for txout in tx['txOuts']:
-        if values['recipient'] not in blockchain.utxo:
-            blockchain.utxo[values['recipient']] = list()
-        blockchain.utxo[values['recipient']].append(txout)
 
     for txin in tx['txIns']:
-            blockchain.utxo[values['publickey']].remove(txin)
+        blockchain.utxo[publickey].remove(txin)
+
+    for txout in tx['txOuts']:
+        address = txout['address']
+        if address not in blockchain.utxo:
+            blockchain.utxo[address] = list()
+        blockchain.utxo[address].append(txout)
 
     headers = {'Content-Type': 'application/json'}
     nodes_to_call = blockchain.nodes - set(skip_nodes)
     data = {
-        "publickey": values['publickey'],
-        "recipient": values['recipient'],
-        "message": values['message'],
         "signature": values['signature'],
-        "amount": values['amount'],
         "nodes": list(set(skip_nodes) | blockchain.nodes),
+        "message": values['message'],
     }
     for node in nodes_to_call:
         r = requests.post(f'{node}transactions/new', data=json.dumps(data), headers=headers)
 
     response = {'message': f'Transaction will be added to Block {index}'}
+
     return jsonify(response), 500
 
 
@@ -505,3 +526,4 @@ if __name__ == '__main__':
     host = '127.0.0.1'
     port = 5000
     app.run(host, port, threaded=True)
+
