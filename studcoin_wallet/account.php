@@ -8,9 +8,8 @@
 <?php include('include/nav.inc.php');?>
 <body>
     <h1>
-    <?php echo 'username :'.$_SESSION['username'] ;
-    echo '<br>publicKey : '.$_SESSION['publicKey'];
-    echo '<br>balance : '. getUTXO('000116e05a02f0f2b553c041e060ac036b8ebaa1dde1da711b9f6db6c70a6db1b6f50e940246e7e28f908477da6ec982cad2c744610550b65617a19d8fa328b9'); 
+    <?php 
+    echo 'Balance : '. getUTXO('000116e05a02f0f2b553c041e060ac036b8ebaa1dde1da711b9f6db6c70a6db1b6f50e940246e7e28f908477da6ec982cad2c744610550b65617a19d8fa328b9') . ' Studcoins<br>'; 
     
    		function getUTXO($publicKey){
 	   		$server = '127.0.0.1';
@@ -30,6 +29,7 @@
 		}
 		
 	?>
+	Your Transactions
     </h1>
     <div id="userItems">
 

@@ -30,12 +30,13 @@ var_dump($_SESSION);
                   ?>   
               </div>
         </div>
+        <hr>
         <div class="container col-sm-6 col-md-6">
               <div id='keysForm'>
-                 
+                  <br><br><br>
                   <p>Public Key</p> 
                   <input type="text" id="publicKey"style="width:450px;" value="<?php echo $_SESSION['publicKey'];?>"readonly> 
-                  <p>Your Private Key</p>
+                  <p>Enter Your Private Key</p>
                   <input type="text" id="privateKey"style="width:450px;">
                   <!-- <input type="file"> -->
               </div> 
@@ -65,19 +66,26 @@ var_dump($_SESSION);
   $("#checkout").click(function(){
     privKey = $.trim($('#privateKey').val()); 
     //validate keypair first
+    console.log(verifyKeyPair())
     if(verifyKeyPair()){
       var messageRaw = new Object();
       messageRaw.amount = <?php echo $_SESSION['cart']['amt'];?>;
-      messageRaw.seller = '<?php echo $_SESSION['cart']['seller'];?>';
+      messageRaw.recipient = '<?php echo $_SESSION['cart']['seller'];?>';
       messageRaw.itemID = <?php echo $_SESSION['cart']['itemID'];?>;
-      messageRaw.buyer = publicKey; 
+      messageRaw.publickey = pubKey; 
       var message = JSON.stringify(messageRaw); 
       var signature = sign(message); 
       $.post('formProcess.php',{
-        message: message, 
+        amount: messageRaw.amount,
+        publickey: messageRaw.publickey,
+        recipient: messageRaw.recipient,
+        itemID: messageRaw.itemID,
         signature: signature
+      })
+      .done(function(data){
+        console.log(data);
       });
-      window.location = 'account.php';    
+     window.location = 'account.php';   
     }else{
         alert('invalidKeys');
         $('#privateKey').val(''); 
@@ -92,7 +100,7 @@ var_dump($_SESSION);
     var sigValueHex = sign("aaa");
     
     var sig = new KJUR.crypto.Signature({"alg": hashFunc, "prov": "cryptojs/jsrsa"});
-    
+      
     sig.init({xy: pubKey, curve: curve});
     sig.updateString("aaa");
     
@@ -102,7 +110,7 @@ var_dump($_SESSION);
   
   function sign(message) {
     var sig = new KJUR.crypto.Signature({"alg": hashFunc});
-    
+ 
     sig.init({d: privKey, curve: curve});
     sig.updateString(message);
     

@@ -44,9 +44,11 @@
                     <div class="keypair" style="display:None">
                         <h5>Public Key</h5>
                         <input type="text" id="publicK" class="fadeIn first" readonly>
-                        <h5>Private Key</h5>
-                        <input type="text" id="privateK" class="fadeIn first" readonly>
-                         <input id="returnLogin" type="submit" class="fadeIn second" value="Login">
+                        <br><br><h5>Private Key</h5>
+                        <h5>Copy your private key. You need it later on!</h5>
+                        <p><input type="text" id="privateK" class="fadeIn first" readonly>
+                        <input type="button" class="fadeIn second" id="copyClipboard" value="Copy text"></p>
+                        <input id="returnLogin" type="submit" class="fadeIn second" value="Login" disabled>
                         <br><br>
                     </div>
                 </div>
@@ -98,6 +100,12 @@ var privKey = null;
 
 /* Actions */
 
+$("#copyClipboard").click(function(){
+    $("#privateK").select();
+    document.execCommand("copy");
+    $("#returnLogin").prop('disabled', false);
+})
+
 $("#returnLogin").click(function(){
      $('.keypair').hide();
      $('.existing').show();
@@ -130,7 +138,10 @@ $('#register').click(function(){
         return; 
     }
 
-
+    if(password!=confirmPassword){
+        alert('Passwords entered do not match');
+        return; 
+    }
 
     $('.new').hide(); 
     $('.keypair').show();

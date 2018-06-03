@@ -57,7 +57,7 @@ function getItem($itemID){
     echo($html);                 
 }    
 function getAllUserPurchases($userID){
-    var_dump($userID); 
+
 
     $file_db = new PDO('sqlite:db_test.db');
     $file_db->setAttribute(PDO::ATTR_ERRMODE,
@@ -92,7 +92,7 @@ function getAllUserPurchases($userID){
             $html .= '<form action="payment.php" method="get">'; 
             $html .= '<div class="block mh-100" id="item1">'; 
             $html .= '<div class="block-img wrap-pic-w of-hidden pos-relative block-labelnew">';
-            $html .= '<img src="' . $item['img'] . '" alt="IMG-PRODUCT"class="img-fluid">'; 
+            $html .= '<img  src="' . $item['img'] . '" alt="IMG-PRODUCT" width=720 class="img-fluid">'; 
             $html .= ' </div>'; 
             $html .= '<div class="row">';
             $html .= '<div class="col-sm">';
@@ -161,13 +161,16 @@ function fetchItems(){
 function printItems($itemsList){
     $html .= ' <div class ="row">';
     foreach($itemsList as $item){  
+
+
+
             $html .= '<div class="col-sm-6 col-md-4 col-lg-3 p-b-50">';
             $html .= '<form action="payment.php" method="get">'; 
             $html .= '<div class="block" id="item1">'; 
             $html .= '<div class="block-img wrap-pic-w of-hidden pos-relative block-labelnew">';
-            $html .= '<img src="' . $item['img'] . '" alt="IMG-PRODUCT"class="img-fluid">'; 
+            $html .= '<img src="' . $item['img'] . '" alt="IMG-PRODUCT" width="720" class="img-fluid">'; 
             $html .= ' </div>'; 
-            $html .= '<div class="row">'; 
+            $html .= '<div class="row itemDetails">'; 
             $html .= '<div class="col-sm-6">';
             $html .= '<p>' . $item['itemName'] . '</p>';    
             $html .= '<p>' . $item['amt'] . '</p>';
@@ -178,7 +181,11 @@ function printItems($itemsList){
             $html .= '<input type="hidden" name="seller" id="item' . $item['itemID'] .'seller" value ="'. $item['sellerPublicKey'].'">'; 
             
             $html.= '<div class="col-sm-6">';
-            $html .= '<button  class="float-right btn btn-lg bg-success" type="submit" name="itemName" id="buyButton" onclick="add(' . $item['itemID'] .')">Buy</button>'; 
+            if($item['amt']> $_SESSION['utxo']){
+                $html .= '<button  class="float-right btn btn-lg bg-success" type="submit" name="itemName" id="buyButton" disabled>Buy</button>';
+            }else{
+                $html .= '<button  class="float-right btn btn-lg bg-success" type="submit" name="itemName" id="buyButton" onclick="add(' . $item['itemID'] .')">Buy</button>'; 
+            }
             $html .= '</div>';
             $html .= '</div>'; 
             $html .= '</div>'; 

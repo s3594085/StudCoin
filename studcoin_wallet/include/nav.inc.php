@@ -13,6 +13,10 @@
 			    <a class="dropdown-item" href="logout.php">Logout</a>
 		  </div>
 		</div>
-    </li>   
+    </li> 
+    <li class="nav-item active float-right">
+    	<span class="nav-link">Balance : <?php echo($_SESSION['utxo']);?></span>
+
+    </li>  
   </ul>
 </nav>
