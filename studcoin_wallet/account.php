@@ -7,48 +7,48 @@
 <?php include('include/head.inc.php');?>
 <?php include('include/nav.inc.php');?>
 <body>
-    <h1>
-    <?php 
-    echo 'Balance : '. getUTXO('000116e05a02f0f2b553c041e060ac036b8ebaa1dde1da711b9f6db6c70a6db1b6f50e940246e7e28f908477da6ec982cad2c744610550b65617a19d8fa328b9') . ' Studcoins<br>'; 
-    
-   		function getUTXO($publicKey){
-	   		$server = '127.0.0.1';
-			$port = '5000';
-			$url = 'http://'.$server.':'.$port.'/getUTXO';
-			$result = file_get_contents($url);
-			$resultJSON = json_decode($result, true);
-			
-			foreach($resultJSON as $a){
-			foreach($a as $b){
-				foreach($b as $utxo){
-					if($utxo['address']==$publicKey){
-						return $utxo['amount'];
-				}
-			}}
-			}
+    <h1 style="text-align:center">
+    <?php
+    echo 'Balance : '. getUTXO('000116e05a02f0f2b553c041e060ac036b8ebaa1dde1da711b9f6db6c70a6db1b6f50e940246e7e28f908477da6ec982cad2c744610550b65617a19d8fa328b9') . ' Studcoins<br>';
+
+function getUTXO($publicKey){
+      $server = '127.0.0.1';
+      $port = '5000';
+      $url = 'http://'.$server.':'.$port.'/getUTXO';
+      $result = file_get_contents($url);
+      $resultJSON = json_decode($result, true);
+
+      foreach($resultJSON as $a){
+      foreach($a as $b){
+      foreach($b as $utxo){
+      	if($utxo['address']==$publicKey){
+      		return $utxo['amount'];
+      }
+      }}
+      }
 		}
-		
+
 	?>
 	Your Transactions
     </h1>
     <div id="userItems">
 
 
-    </div>   
-        
-   
+    </div>
+
+
 <script>
 	var publicKey = '<?php echo $_SESSION['publicKey'];?>';
 	window.onload = function(){
 		$.post('storeData.php', {getAllUserPurchases: 'true', userID: publicKey})
 			.done(function(data){
-				$('#userItems').html(data); 
+				$('#userItems').html(data);
 			});
 
 
 
 	}
-</script>    
+</script>
 </body>
 </html>
 <!--https://bootsnipp.com/snippets/featured/address-details-modal-form-->
