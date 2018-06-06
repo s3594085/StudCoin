@@ -310,22 +310,22 @@ class Blockchain(object):
     def verify(self, signature, message, publickey):
         try:
             signatureHex = bytes.fromhex(signature)
-            #messageString = str(message['amount']) + message['recipient'] + str(message['itemID']) + "04" + message['publickey']
-           # messageEncode = messageString.encode()
+            workingMSG = json.dumps(message).encode('UTF-16', 'strict')
+            messageString = str(message['amount']) + message['recipient'] + str(message['itemID']) + "04" + message['publickey']
+            messageEncode = messageString.encode(json.dumps(message).encode('UTF-16', 'strict'))
             #messageString = json.dumps(message, sort_keys=True).encode()
             #print(messageString)
             #demomsg = message['string'].encode()
 
-
             publicKeySig = VerifyingKey.from_string(bytes.fromhex(publickey), curve=NIST256p, hashfunc=sha256)
-            return publicKeySig.verify(signatureHex, json.dumps(message).encode(), hashfunc=hashlib.sha256)
+            return publicKeySig.verify(signatureHex, messageEncode, hashfunc=hashlib.sha256)
 
         except AssertionError:
             print('invalid key')
             return False
 
     def sign(self, message):
-        messageStr = json.dumps(message).encode()
+        messageStr = json.dumps(message).encode('UTF-16', 'strict')
         print(node_privatekey)
         print(node_publickey)
         private_key = SigningKey.from_string(bytes.fromhex(node_privatekey), curve=NIST256p, hashfunc=sha256)
