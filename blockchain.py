@@ -8,7 +8,7 @@ from textwrap import dedent
 from uuid import uuid4
 from flask import Flask, jsonify, request
 from urllib.parse import urlparse
-from ecdsa import SigningKey, VerifyingKey, NIST256p, SECP256k1
+from ecdsa import SigningKey, VerifyingKey, NIST256p
 from hashlib import sha256
 from wallet import createTransaction, getBalance
 from transaction import getCoinbaseTransaction
@@ -36,6 +36,15 @@ class Blockchain(object):
         self.new_block(block)
 
         self.nodes = set()
+
+    def generateKeyPair(self):
+        privateKey = SigningKey.generate(curve=NIST256p, hashfunc=sha256)
+        publicKey = privateKey.get_verifying_key()
+        response = {
+            'privateKey': privateKey.to_string().hex(),
+            'publicKey': publicKey.to_string().hex(),
+        }
+        return jsonify(response)
 
     def new_block(self, block):
         # Creates a new block and adds it to the chain
@@ -307,19 +316,28 @@ class Blockchain(object):
             #print(messageString)
             #demomsg = message['string'].encode()
 
-            publicKeySig = VerifyingKey.from_string(bytes.fromhex(publickey), curve=SECP256k1, hashfunc=hashlib.sha256)
-            return publicKeySig.verify(signatureHex , "aaa".encode(), hashlib.sha256)
+
+            publicKeySig = VerifyingKey.from_string(bytes.fromhex(publickey), curve=NIST256p, hashfunc=sha256)
+            return publicKeySig.verify(signatureHex, json.dumps(message).encode(), hashfunc=hashlib.sha256)
 
         except AssertionError:
             print('invalid key')
             return False
 
+    def sign(self, message):
+        messageStr = json.dumps(message).encode()
+        print(node_privatekey)
+        print(node_publickey)
+        private_key = SigningKey.from_string(bytes.fromhex(node_privatekey), curve=NIST256p, hashfunc=sha256)
+        sigPreHex = private_key.sign(messageStr, hashfunc=hashlib.sha256)
+        return sigPreHex.hex()
 
 # Instantiate our node
 app = Flask(__name__)
 
 # Generate a globally unique address for this node
-node_identifier = "000116e05a02f0f2b553c041e060ac036b8ebaa1dde1da711b9f6db6c70a6db1b6f50e940246e7e28f908477da6ec982cad2c744610550b65617a19d8fa328b9"  # str(uuid4()).replace('-', '')
+node_publickey = ""  # str(uuid4()).replace('-', '')
+node_privatekey = ""
 
 # Instantiate our blockchain
 blockchain = Blockchain()
@@ -388,7 +406,7 @@ def balance():
 @app.route('/mine', methods=['GET'])
 def mine():
     # Miners reward transaction
-    blockchain.new_transaction(getCoinbaseTransaction(node_identifier, len(blockchain.chain) + 1).toJSON())
+    blockchain.new_transaction(getCoinbaseTransaction(node_publickey, len(blockchain.chain) + 1).toJSON())
 
     # We run the proof of work algorithm to get the next proof
     while True:
@@ -410,10 +428,10 @@ def mine():
 
         for tx in block['transactions']:
             for txout in tx['txOuts']:
-                if txout['address'] == node_identifier:
-                    if node_identifier not in blockchain.utxo:
-                        blockchain.utxo[node_identifier] = list()
-                    blockchain.utxo[node_identifier].append(txout)
+                if txout['address'] == node_publickey:
+                    if node_publickey not in blockchain.utxo:
+                        blockchain.utxo[node_publickey] = list()
+                    blockchain.utxo[node_publickey].append(txout)
 
         # Forge the new block by adding it to the chain
         blockchain.new_block(block)
@@ -453,9 +471,26 @@ def buy_coins():
     amount = values['amount']
     publickey = values['publickey']
 
-    if getBalance(node_identifier, blockchain.utxo) > amount:
-        createTransaction(publickey, amount, node_identifier, blockchain.utxo)
-        return 200
+    if getBalance(node_publickey, blockchain.utxo) > amount:
+        # Creates a new transaction
+        headers = {'Content-Type': 'application/json'}
+        message = {
+            "recipient": publickey,
+            "amount": amount,
+            "publickey": node_publickey,
+        }
+        nodes = set()
+        nodes.add(" ")
+        data = {
+            "signature": blockchain.sign(message),
+            "nodes": [""],
+            "message": message,
+        }
+        r = requests.post(f'http://{host}:{port}/transactions/new', data=json.dumps(data), headers=headers)
+        response = {
+            "amount": amount
+        }
+        return jsonify(response), 200
     else:
         return 'Node does not have enough funds, try another node', 401
 
@@ -541,12 +576,17 @@ def generateKeyPair():
     publicKey = privateKey.get_verifying_key()
     response = {
         'privateKey': privateKey.to_string().hex(),
-        'publicKey' : publicKey.to_string().hex(),
+        'publicKey': publicKey.to_string().hex(),
     }
     return jsonify(response)
 
 if __name__ == '__main__':
-    host = '0.0.0.0'
+    host = '127.0.0.1'
     port = 5000
+    node_privatekey = SigningKey.generate(curve=NIST256p, hashfunc=sha256)
+    node_publickey = node_privatekey.get_verifying_key()
+    node_privatekey = node_privatekey.to_string().hex()
+    node_publickey = node_publickey.to_string().hex()
     app.run(host, port, threaded=True)
+
 

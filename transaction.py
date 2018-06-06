@@ -43,27 +43,14 @@ class TxOut:
         self.address = address
         self.amount = amount
 
-class itemOut:
-
-    def __init__(self, id, name, address):
-        self.itemID = id
-        self.name = name
-        self.address = address
-
-
-
 class Transaction:
 
     def __init__(self):
         self.id = None
-        self.itemIn = None
-        self.itemOut = None
         self.txIns = []
         self.txOuts = []
 
     def toJSON(self):
-
-        
 
         transactionJSON = {
             "id": self.id,
