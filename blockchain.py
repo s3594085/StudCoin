@@ -8,7 +8,8 @@ from textwrap import dedent
 from uuid import uuid4
 from flask import Flask, jsonify, request
 from urllib.parse import urlparse
-from ecdsa import SigningKey, VerifyingKey, NIST256p
+from ecdsa import SigningKey, VerifyingKey, NIST256p, SECP256k1
+from hashlib import sha256
 from wallet import createTransaction, getBalance
 from transaction import getCoinbaseTransaction
 
@@ -300,10 +301,14 @@ class Blockchain(object):
     def verify(self, signature, message, publickey):
         try:
             signatureHex = bytes.fromhex(signature)
-            messageString = json.dumps(message, sort_keys=True).encode()
-            demomsg = message['string'].encode()
-            publicKeySig = VerifyingKey.from_string(bytes.fromhex(publickey), curve=NIST256p)
-            return publicKeySig.verify(signatureHex, demomsg)
+            #messageString = str(message['amount']) + message['recipient'] + str(message['itemID']) + "04" + message['publickey']
+           # messageEncode = messageString.encode()
+            #messageString = json.dumps(message, sort_keys=True).encode()
+            #print(messageString)
+            #demomsg = message['string'].encode()
+
+            publicKeySig = VerifyingKey.from_string(bytes.fromhex(publickey), curve=SECP256k1, hashfunc=hashlib.sha256)
+            return publicKeySig.verify(signatureHex , "aaa".encode(), hashlib.sha256)
 
         except AssertionError:
             print('invalid key')
@@ -318,7 +323,6 @@ node_identifier = "000116e05a02f0f2b553c041e060ac036b8ebaa1dde1da711b9f6db6c70a6
 
 # Instantiate our blockchain
 blockchain = Blockchain()
-
 
 @app.route('/nodes/register', methods=['POST'])
 def register_nodes():
@@ -443,12 +447,21 @@ def mine():
         break
     return jsonify(block)
 
+@app.route('/buyCoins', methods=['POST'])
+def buy_coins():
+    values = request.get_json()
+    amount = values['amount']
+    publickey = values['publickey']
+
+    if getBalance(node_identifier, blockchain.utxo) > amount:
+        createTransaction(publickey, amount, node_identifier, blockchain.utxo)
+        return 200
+    else:
+        return 'Node does not have enough funds, try another node', 401
 
 @app.route('/transactions/new', methods=['POST'])
 def new_transaction():
-    print("1")
     values = request.get_json()
-    print("2")
     skip_nodes = set(values.get('nodes'))
     skip_nodes.add(f'http://{host}:{port}/')
 
@@ -462,6 +475,8 @@ def new_transaction():
     publickey = message['publickey']
     recipient = message['recipient']
     amount = message['amount']
+    print(message)
+    print(values['signature'])
 
     if not isinstance(amount, int):
         return 'invalid amount', 403
@@ -470,7 +485,6 @@ def new_transaction():
         return 'Amount cannot be negative', 404
 
     if not blockchain.verify(values['signature'], message, publickey):
-        print("nah")
         return 'Invalid Signature', 401
 
     if getBalance(publickey, blockchain.utxo) < amount:
@@ -521,9 +535,18 @@ def get_UTXO():
     }
     return jsonify(response), 200
 
+@app.route('/generateKeyPair', methods=['GET'])
+def generateKeyPair():
+    privateKey = SigningKey.generate(curve=NIST256p, hashfunc=sha256)
+    publicKey = privateKey.get_verifying_key()
+    response = {
+        'privateKey': privateKey.to_string().hex(),
+        'publicKey' : publicKey.to_string().hex(),
+    }
+    return jsonify(response)
 
 if __name__ == '__main__':
-    host = '127.0.0.1'
+    host = '0.0.0.0'
     port = 5000
     app.run(host, port, threaded=True)
 

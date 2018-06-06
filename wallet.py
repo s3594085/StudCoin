@@ -4,7 +4,7 @@ count = 0
 
 def getBalance(address, unspentTxOuts):
     if address not in unspentTxOuts:
-        return -1
+        return 0
 
     unspentTxOuts = list(unspentTxOuts[address])
     total = 0
