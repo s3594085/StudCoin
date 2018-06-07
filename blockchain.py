@@ -309,15 +309,20 @@ class Blockchain(object):
 
     def verify(self, signature, message, publickey):
         try:
+            print(publickey)
             signatureHex = bytes.fromhex(signature)
-            #messageString = str(message['amount']) + message['recipient'] + str(message['itemID']) + "04" + message['publickey']
-            #messageEncode = messageString.encode()
+            messageString = str(message['amount']) + message['recipient'] + str(message['itemID']) + message['publickey']
+            messageEncode = str(messageString).encode()
+            msg = json.dumps(message)
             #messageString = json.dumps(message, sort_keys=True).encode()
             #print(messageString)
             #demomsg = message['string'].encode()
+            print("-----------")
+            print(messageEncode)
+            print("-----------")
 
             publicKeySig = VerifyingKey.from_string(bytes.fromhex(publickey), curve=NIST256p, hashfunc=sha256)
-            return publicKeySig.verify(signatureHex, json.dumps(message).encode(), hashfunc=hashlib.sha256)
+            return publicKeySig.verify(signatureHex, messageEncode)
 
         except AssertionError:
             print('invalid key')
@@ -327,8 +332,8 @@ class Blockchain(object):
         messageStr = json.dumps(message).encode()
         print(node_privatekey)
         print(node_publickey)
-        private_key = SigningKey.from_string(bytes.fromhex(node_privatekey), curve=NIST256p, hashfunc=sha256)
-        sigPreHex = private_key.sign(messageStr, hashfunc=hashlib.sha256)
+        private_key = SigningKey.from_string(bytes.fromhex(node_privatekey), curve=NIST256p)
+        sigPreHex = private_key.sign(messageStr)
         return sigPreHex.hex()
 
 # Instantiate our node
@@ -580,7 +585,7 @@ def generateKeyPair():
     return jsonify(response)
 
 if __name__ == '__main__':
-    host = '127.0.0.1'
+    host = '10.132.39.159'
     port = 5000
     node_privatekey = SigningKey.generate(curve=NIST256p, hashfunc=sha256)
     node_publickey = node_privatekey.get_verifying_key()
