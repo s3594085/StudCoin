@@ -7,7 +7,7 @@ from hashlib import sha256
 from flask import jsonify
 from functools import reduce
 
-COINBASE_AMOUNT = 50
+COINBASE_AMOUNT = 2
 
 
 class UnspentTxOut:
@@ -97,7 +97,6 @@ def generateTxOutID(txIns, recieverAddress, amount):
     txInContent = []
 
     for txIn in txIns:
-        print (txIn)
         txInContent.append(txIn.txOut.id + txIn.txOut.address + str(txIn.txOut.amount))
 
     txInContent = reduce((lambda x, y: x + y), txInContent)

@@ -11,7 +11,6 @@ def getBalance(address, unspentTxOuts):
     for txout in unspentTxOuts:
         total += txout["amount"]
 
-    print(total)
     return total
 
 
@@ -51,7 +50,6 @@ def createTransaction(receiverAddress, amount, publicKey, unspentTxOuts):
         return None
 
     def toUnsignedTxIn(unspentTxOut):
-        print(unspentTxOut)
         txIn = transaction.TxIn(transaction.TxOut(unspentTxOut["id"], unspentTxOut["address"], unspentTxOut["amount"]))
         return txIn
 

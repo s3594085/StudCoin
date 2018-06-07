@@ -1,17 +1,15 @@
 import hashlib
 import json
 import requests
+import re
 
-from threading import Thread
 from time import time
-from textwrap import dedent
-from uuid import uuid4
 from flask import Flask, jsonify, request
-from urllib.parse import urlparse
 from ecdsa import SigningKey, VerifyingKey, NIST256p
 from hashlib import sha256
 from wallet import createTransaction, getBalance
 from transaction import getCoinbaseTransaction
+from urllib3 import exceptions
 
 class Blockchain(object):
     minedBlock = None
@@ -23,6 +21,8 @@ class Blockchain(object):
         self.chain = []
         self.current_transactions = []
         self.utxo = dict()
+        self.mining_status = False
+        self.num_miners = 0
 
         # Creates the genesis block
         block = {
@@ -107,14 +107,17 @@ class Blockchain(object):
             if blockchain.interrupted == 1:
                 blockchain.interrupted = 0
                 return None
+            if not blockchain.mining_status:
+                return None
             block['nonce'] += 1
             if block['nonce'] > 0x100000000:
+
                 return None
             guess_hash = self.valid_proof(block)
         return block
 
     "By Seconds"
-    BLOCK_GENERATION_INTERVAL = 60
+    BLOCK_GENERATION_INTERVAL = 10
     "By Blocks"
     DIFFICULTY_ADJUSTMENT_INTERVAL = 10
 
@@ -168,8 +171,11 @@ class Blockchain(object):
                 "request_back": 0
             }
             headers = {'Content-Type': 'application/json'}
-            r = requests.post(f'{address}nodes/register', data=json.dumps(data), headers=headers)
-            print(r.json())
+            try:
+                r = requests.post(f'{address}nodes/register', data=json.dumps(data), headers=headers)
+            except Exception:
+                print("Connection failed")
+                return
 
         self.nodes.add(address)
 
@@ -189,11 +195,7 @@ class Blockchain(object):
 
         while current_index < len(chain):
             block = chain[current_index]
-            print(f'{last_block}')
-            print(f'{block}')
-            print("\n-----------\n")
             # Check that the hash of the block is correct
-
             if block['previous_hash'] != self.hash(last_block):
                 return False
 
@@ -255,13 +257,9 @@ class Blockchain(object):
 
     def remove_mined_tx(self, new_chain):
         new_length = len(new_chain) - 1
-
-        print("HEEEEEEEEEEERRRRRRRRRE")
-        print (new_length, " ", len(self.chain))
         while new_length != len(self.chain) - 1:
             txs = new_chain[new_length]['transactions']
             for tx in txs:
-                print(tx)
                 if tx in blockchain.current_transactions:
                     blockchain.current_transactions.remove(tx)
             new_length -= 1
@@ -309,29 +307,18 @@ class Blockchain(object):
 
     def verify(self, signature, message, publickey):
         try:
-            print(publickey)
             signatureHex = bytes.fromhex(signature)
             messageString = str(message['amount']) + message['recipient'] + str(message['itemID']) + message['publickey']
             messageEncode = str(messageString).encode()
-            msg = json.dumps(message)
-            #messageString = json.dumps(message, sort_keys=True).encode()
-            #print(messageString)
-            #demomsg = message['string'].encode()
-            print("-----------")
-            print(messageEncode)
-            print("-----------")
-
             publicKeySig = VerifyingKey.from_string(bytes.fromhex(publickey), curve=NIST256p, hashfunc=sha256)
             return publicKeySig.verify(signatureHex, messageEncode)
 
         except AssertionError:
-            print('invalid key')
+            print("Invalid Key")
             return False
 
     def sign(self, message):
         messageStr = json.dumps(message).encode()
-        print(node_privatekey)
-        print(node_publickey)
         private_key = SigningKey.from_string(bytes.fromhex(node_privatekey), curve=NIST256p)
         sigPreHex = private_key.sign(messageStr)
         return sigPreHex.hex()
@@ -349,9 +336,9 @@ blockchain = Blockchain()
 @app.route('/nodes/register', methods=['POST'])
 def register_nodes():
     values = request.get_json()
-
     nodes = values.get('nodes')
     request_back = values.get('request_back')
+    print("Registered Nodes: ", nodes)
     if nodes is None:
         return "Error: Please supply a valid list of nodes", 400
 
@@ -410,8 +397,13 @@ def balance():
 @app.route('/mine', methods=['GET'])
 def mine():
     # Miners reward transaction
-    blockchain.new_transaction(getCoinbaseTransaction(node_publickey, len(blockchain.chain) + 1).toJSON())
+    if blockchain.num_miners >= 1:
+        return "This node is already mining"
 
+    blockchain.num_miners = 1
+    blockchain.new_transaction(getCoinbaseTransaction(node_publickey, len(blockchain.chain) + 1).toJSON())
+    blockchain.mining_status = True
+    print("Began Mining")
     # We run the proof of work algorithm to get the next proof
     while True:
         last_block = blockchain.last_block
@@ -426,6 +418,8 @@ def mine():
         }
 
         block = blockchain.proof_of_work(block)
+        if blockchain.mining_status is False:
+            return "Stopped Mining"
 
         if block is None:
             continue
@@ -438,6 +432,7 @@ def mine():
                     blockchain.utxo[node_publickey].append(txout)
 
         # Forge the new block by adding it to the chain
+        print("Successfully Mined Block #", block['index'])
         blockchain.new_block(block)
 
         # We must receive a reward for finding the proof.
@@ -466,8 +461,14 @@ def mine():
             r = requests.post(f'{node}nodes/resolve', data=json.dumps(data), headers=headers)
 
         blockchain.minedBlock = None
-        break
-    return jsonify(block)
+        blockchain.new_transaction(getCoinbaseTransaction(node_publickey, len(blockchain.chain) + 1).toJSON())
+
+@app.route('/stopMining', methods=['GET'])
+def stop_mining():
+    print("Stopped Mining")
+    blockchain.mining_status = False
+    blockchain.num_miners = 0
+    return "Stopped Mining"
 
 @app.route('/buyCoins', methods=['POST'])
 def buy_coins():
@@ -514,8 +515,6 @@ def new_transaction():
     publickey = message['publickey']
     recipient = message['recipient']
     amount = message['amount']
-    print(message)
-    print(values['signature'])
 
     if not isinstance(amount, int):
         return 'invalid amount', 403
@@ -585,8 +584,18 @@ def generateKeyPair():
     return jsonify(response)
 
 if __name__ == '__main__':
-    host = '10.132.39.159'
+    host = '127.0.0.1'
     port = 5000
+    ans = input("Begin a new chain? Y/N\n")
+    pattern = re.compile("http://[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:[0-9]{1,4}/")
+    if ans == "N" or ans == "n":
+        while True:
+            node = input("Enter a node IP to connect to: i.e.\"http://ipaddress:port/\"\nEnter Q to quit\n")
+            if node == "Q" or node == "q":
+                exit()
+            if pattern.match(node):
+                if blockchain.register_node(node, 1):
+                    break
     node_privatekey = SigningKey.generate(curve=NIST256p, hashfunc=sha256)
     node_publickey = node_privatekey.get_verifying_key()
     node_privatekey = node_privatekey.to_string().hex()
