@@ -5,7 +5,7 @@ import re
 
 from time import time
 from flask import Flask, jsonify, request
-from ecdsa import SigningKey, VerifyingKey, NIST256p
+from ecdsa import SigningKey, VerifyingKey, NIST256p, BadSignatureError
 from hashlib import sha256
 from wallet import createTransaction, getBalance
 from transaction import getCoinbaseTransaction
@@ -316,6 +316,9 @@ class Blockchain(object):
         except AssertionError:
             print("Invalid Key")
             return False
+        except BadSignatureError:
+            print("Invalid Key")
+            return False
 
     def sign(self, message):
         messageStr = json.dumps(message).encode()
@@ -552,7 +555,7 @@ def new_transaction():
     for node in nodes_to_call:
         r = requests.post(f'{node}transactions/new', data=json.dumps(data), headers=headers)
 
-    response = {'message': f'Transaction will be added to Block {index}'}
+    response = {'txid': tx['id']}
 
     return jsonify(response), 500
 
@@ -586,9 +589,11 @@ def generateKeyPair():
 if __name__ == '__main__':
     host = '127.0.0.1'
     port = 5000
-    ans = input("Begin a new chain? Y/N\n")
-    pattern = re.compile("http://[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:[0-9]{1,4}/")
+    ans = input("Connect to another node? Y/N\n")
     if ans == "N" or ans == "n":
+        ans = input("Are you sure? This will result in you creating a new chain")
+    pattern = re.compile("http://[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:[0-9]{1,4}/")
+    if ans == "Y" or ans == "y":
         while True:
             node = input("Enter a node IP to connect to: i.e.\"http://ipaddress:port/\"\nEnter Q to quit\n")
             if node == "Q" or node == "q":
