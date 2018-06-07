@@ -178,6 +178,7 @@ class Blockchain(object):
                 return
 
         self.nodes.add(address)
+        return True
 
     def valid_chain(self, chain):
         """
@@ -308,7 +309,13 @@ class Blockchain(object):
     def verify(self, signature, message, publickey):
         try:
             signatureHex = bytes.fromhex(signature)
-            messageString = str(message['amount']) + message['recipient'] + str(message['itemID']) + message['publickey']
+            if 'itemID' in message:
+                messageString = str(message['amount']) + message['recipient'] + str(message['itemID']) + message[
+                    'publickey']
+            else:
+                messageString = str(message['amount']) + message['recipient'] + message[
+                    'publickey']
+
             messageEncode = str(messageString).encode()
             publicKeySig = VerifyingKey.from_string(bytes.fromhex(publickey), curve=NIST256p, hashfunc=sha256)
             return publicKeySig.verify(signatureHex, messageEncode)
@@ -515,6 +522,8 @@ def new_transaction():
 
 
     message = values['message']
+    if not all(k in message for k in required):
+        return 'Missing values', 401
     publickey = message['publickey']
     recipient = message['recipient']
     amount = message['amount']
@@ -587,7 +596,7 @@ def generateKeyPair():
     return jsonify(response)
 
 if __name__ == '__main__':
-    host = '127.0.0.1'
+    host = '10.132.33.190'
     port = 5000
     ans = input("Connect to another node? Y/N\n")
     if ans == "N" or ans == "n":
@@ -600,7 +609,11 @@ if __name__ == '__main__':
                 exit()
             if pattern.match(node):
                 if blockchain.register_node(node, 1):
-                    break
+                    node_privatekey = SigningKey.generate(curve=NIST256p, hashfunc=sha256)
+                    node_publickey = node_privatekey.get_verifying_key()
+                    node_privatekey = node_privatekey.to_string().hex()
+                    node_publickey = node_publickey.to_string().hex()
+                    app.run(host, port, threaded=True)
     node_privatekey = SigningKey.generate(curve=NIST256p, hashfunc=sha256)
     node_publickey = node_privatekey.get_verifying_key()
     node_privatekey = node_privatekey.to_string().hex()
