@@ -6,13 +6,17 @@
 
 .block{
 	margin-bottom: 10px;
-	padding-top:20px; 
+	padding-top:20px;
 	padding-bottom: 20px;
 	border-width: thin;
 	border-style: solid;
   border-color: lightgrey;
 }
 
+#pricePurchase{
+	width:178px;
+	height:146px;
+}
 .block:hover {
   border-color: black;
 }

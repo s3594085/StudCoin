@@ -22,7 +22,7 @@
 			$username =	$row['username'];
 			$_SESSION['publicKey'] = $publicKey;
 			$_SESSION['username'] = $username;
-			$_SESSION['utxo'] = getUTXO('000116e05a02f0f2b553c041e060ac036b8ebaa1dde1da711b9f6db6c70a6db1b6f50e940246e7e28f908477da6ec982cad2c744610550b65617a19d8fa328b9');
+			$_SESSION['utxo'] = getUTXO($publicKey);
 		}
 	}elseif(isset($_POST['newUser'])){
 		$username = $_POST['username'];
@@ -36,5 +36,8 @@
 		$qry = "INSERT INTO account(email, username, password,publicKey)
 		VALUES ('$email', '$username', '$password', '$publicKey')";
 		$file_db->exec($qry);
+		$_SESSION['publicKey'] = $publicKey;
+		$_SESSION['username'] = $username;
+		$_SESSION['utxo'] = 0;
 	}
 ?>

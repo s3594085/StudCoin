@@ -108,7 +108,7 @@ $("#copyClipboard").click(function(){
 
 $("#returnLogin").click(function(){
      $('.keypair').hide();
-     $('.existing').show();
+     $('.verified').show();
 
 });
 

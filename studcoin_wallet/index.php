@@ -16,7 +16,6 @@
     <div class="modal-dialog modal-dialog-centered" role="document">
       <div class="modal-content">
         <div class="modal-header">
-
           <button type="button" class="close" data-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
           </button>
@@ -37,7 +36,7 @@
 
 
     <div class="lll">
-        <h1>Welcome <?php echo htmlspecialchars($_SESSION['username']);?></h1>
+        <h1 style="text-align:center">Welcome <?php echo htmlspecialchars($_SESSION['username']);?></h1>
         <div class="container">
           <div id="itemsList">
           </div>

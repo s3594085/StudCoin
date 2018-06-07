@@ -21,6 +21,7 @@ function getUTXO($publicKey){
 
     $result = file_get_contents($url, false, $context);
     $balance = json_decode($result, true);
+    var_dump($balance); 
     return $balance['balance'];
 }
 

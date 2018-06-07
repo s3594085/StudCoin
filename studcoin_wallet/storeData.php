@@ -38,26 +38,26 @@ function getItem($itemID){
             array_push($itemsList, $item);
 
         }
-    $html .= '<div class="row">';
-    $html .= '<div class="container col-sm-5 offset-md-3 row">';
-    $html .= '<span class ="container col-sm-4">Item</span>';
-    $html .= '<span class ="container col-sm-4">Name</span>';
-    $html .= '<span class ="container col-sm-4">Price</span>';
-    foreach($itemsList as $item){
-        $html .='<div class ="container col-sm-4">';
-        $html .='<div class="block-img wrap-pic-w of-hidden pos-relative block-labelnew">';
-        $html .='<img src="'. $item['img'] .'"alt="IMG-PRODUCT"class="img-fluid">';
-        $html .='</div>';
-        $html .='</div>';
-        $html .='          <div class ="container col-sm-4 my-auto">';
-        $html .='              <span>'. $item['itemName'] .'</span>';
-        $html .='          </div>';
-        $html .='          <div class ="container col-sm-4 my-auto">';
-        $html .='                  <span>'. $item['amt'] .'</span>';
-        $html .='          </div>';
-        $html .='       </div>';
-    }
-    $html.=' </div>';
+
+      $html .= '<div class="container row">';
+          $html .= '<span class ="container col-sm-4">Item</span>';
+          $html .= '<span class ="container col-sm-4">Name</span>';
+          $html .= '<span class ="container col-sm-4">Price</span>';
+          foreach($itemsList as $item){
+          $html .='<div class ="container col-sm-4">';
+              $html .='<div class="block-img wrap-pic-w of-hidden pos-relative block-labelnew">';
+                  $html .='<img src="'. $item['img'] .'"alt="IMG-PRODUCT"class="img-fluid">';
+              $html .='</div>';
+          $html .='</div>';
+          $html .='<div class ="container col-sm-4 my-auto">';
+                $html .='<span>'. $item['itemName'] .'</span>';
+          $html .='</div>';
+          $html .='<div class ="container col-sm-4 my-auto">';
+                $html .='<span>'. $item['amt'] .'</span>';
+          $html .='</div>';
+          }
+      $html .='</div>';
+
     echo($html);
 }
 function getAllUserPurchases($userID){
@@ -180,7 +180,7 @@ function printItems($itemsList){
                           $html .= '<input type="hidden" id="item' . $item['itemID'] .'_name" value ="'. $item['itemName'].'">';
                           $html .= '<input type="hidden" name="seller" id="item' . $item['itemID'] .'seller" value ="'. $item['sellerPublicKey'].'">';
                 if($item['amt']> $_SESSION['utxo']){
-                          $html .= '<button  class="container btn btn-lg bg-success" type="submit" name="itemName" id="buyButton" disabled>Buy</button>';
+                          $html .= '<button  class="container btn btn-lg bg-danger" type="submit" name="itemName" id="buyButton" disabled>Insufficient<br>funds</button>';
                 }else{
                           $html .= '<button  class="container vertical-center btn btn-lg bg-success" type="submit" name="itemName" id="buyButton" onclick="add(' . $item['itemID'] .')">Buy</button>';
                 }
