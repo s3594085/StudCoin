@@ -609,11 +609,7 @@ if __name__ == '__main__':
                 exit()
             if pattern.match(node):
                 if blockchain.register_node(node, 1):
-                    node_privatekey = SigningKey.generate(curve=NIST256p, hashfunc=sha256)
-                    node_publickey = node_privatekey.get_verifying_key()
-                    node_privatekey = node_privatekey.to_string().hex()
-                    node_publickey = node_publickey.to_string().hex()
-                    app.run(host, port, threaded=True)
+                    break
     node_privatekey = SigningKey.generate(curve=NIST256p, hashfunc=sha256)
     node_publickey = node_privatekey.get_verifying_key()
     node_privatekey = node_privatekey.to_string().hex()
