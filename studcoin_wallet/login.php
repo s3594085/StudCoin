@@ -107,8 +107,7 @@ $("#copyClipboard").click(function(){
 })
 
 $("#returnLogin").click(function(){
-     $('.keypair').hide();
-     $('.verified').show();
+    window.location.replace('index.php');
 
 });
 
@@ -203,9 +202,8 @@ $("#login").click(function(){
                 alert(data);
             }
             else{
-                console.log(data); 
-                $('.login').hide();
-                $('.verified').show();
+                console.log(data);
+                window.location.replace('index.php');
             }
         });
 

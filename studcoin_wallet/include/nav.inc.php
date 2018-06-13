@@ -7,6 +7,9 @@
         <a class="nav-link" href="buyCoins.php">Buy Studcoins</a>
       </li>
       <li class="nav-item active">
+        <a class="nav-link" href="sendCoins.php">Send Studcoins</a>
+      </li>
+      <li class="nav-item active">
       	<span class="nav-link">Balance : <?php echo($_SESSION['utxo']);?></span>
       </li>
 

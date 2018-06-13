@@ -87,35 +87,35 @@ function getAllUserPurchases($userID){
 
     }
     $html .= ' <div class ="row">';
-    foreach($itemsList as $item){
-            $html .= '<div class="col-sm-6 col-md-4 col-lg-3 p-b-50">';
-            $html .= '<form action="payment.php" method="get">';
-            $html .= '<div class="block mh-100" id="item1">';
-            $html .= '<div class="block-img wrap-pic-w of-hidden pos-relative block-labelnew">';
-            $html .= '<img  src="' . $item['img'] . '" alt="IMG-PRODUCT" width=720 class="img-fluid">';
-            $html .= ' </div>';
-            $html .= '<div class="row">';
-            $html .= '<div class="col-sm">';
-            $html .= '<p>' . $item['itemName'] . '</p>';
-            $html .= '<p>' . $item['amt'] . '</p>';
-            $html .= '</div>';
-            $html .= '<input type="hidden" name="requestedItemID" value="' . $item['itemID'] . '">';
-            $html .= '<input type="hidden" id="item' . $item['itemID'] . '_price" value ="' . $item['amt'] . '">';
-            $html .= '<input type="hidden" id="item' . $item['itemID'] .'_name" value ="'. $item['itemName'].'">';
-            $html .= '<div class="col-sm">';
-            if($item['status']=='pending'){
-                $html .= '<button type="button" class="float-right btn btn-lg btn-success" disabled>Purchased</button>';
-            }elseif($item['status']=='purchased'){
-                $html .= '<button type="button" class="float-right btn btn-lg btn-success" disabled>Yours</button>';
-            }
-            $html .= '</div>';
-            $html .= '</div>';
-            $html .= '</div>';
-            $html .= '</form>';
-            $html .= '</div>';
-    }
-    $html .= '</div>';
-    echo($html);
+foreach($itemsList as $item){
+        $html .= '<div class="col-sm-6 col-md-4 col-lg-3 p-b-50">';
+        $html .= '<form action="payment.php" method="get">';
+        $html .= '<div class="block container" id="item1">';
+        $html .= '<div class="block-img wrap-pic-w of-hidden pos-relative block-labelnew">';
+        $html .= '<img  src="' . $item['img'] . '" alt="IMG-PRODUCT" width=720 class="img-fluid">';
+        $html .= ' </div>';
+        $html .= '<div class="row">';
+        $html .= '<div class="col-sm">';
+        $html .= '<p>' . $item['itemName'] . '</p>';
+        $html .= '<p>' . $item['amt'] . '</p>';
+        $html .= '</div>';
+        $html .= '<input type="hidden" name="requestedItemID" value="' . $item['itemID'] . '">';
+        $html .= '<input type="hidden" id="item' . $item['itemID'] . '_price" value ="' . $item['amt'] . '">';
+        $html .= '<input type="hidden" id="item' . $item['itemID'] .'_name" value ="'. $item['itemName'].'">';
+        $html .= '<div class="col-sm">';
+        if($item['status']=='pending'){
+            $html .= '<button type="button" class="float-right btn btn-lg btn-success" disabled>Purchased</button>';
+        }elseif($item['status']=='purchased'){
+            $html .= '<button type="button" class="float-right btn btn-lg btn-success" disabled>Yours</button>';
+        }
+        $html .= '</div>';
+        $html .= '</div>';
+        $html .= '</div>';
+        $html .= '</form>';
+        $html .= '</div>';
+}
+$html .= '</div>';
+echo($html);
 }
 
 function updateStatusValue($requestedItemID){

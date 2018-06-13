@@ -57,12 +57,7 @@
 	        'content' => json_encode($postdata)
    		 )
 	);
-	$context  = stream_context_create($opts);
-	$server = '127.0.0.1';
-	$port = '5000';
-	$url = 'http://'.$server.':'.$port.'/transactions/new';
-
-	$result = file_get_contents($url, false, $context);
+	$result = makeRequest($opts, 'transactions/new');
 	var_dump($result);
 	if($result===FALSE){
 		var_dump($http_response_header);
