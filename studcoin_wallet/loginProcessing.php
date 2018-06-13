@@ -3,6 +3,7 @@
 	//private key :: 3d4b597814e7ac821cf87efa496b7b5daca719b0f1d9e6b10ef1d1b52ef59d56
 	session_start();
 	include('getUTXO.php');
+	include('apicall.php');
 	$username = $_POST['username'];
 	$password = $_POST['password'];
 	$pwdmd5 = md5($password);
@@ -21,8 +22,15 @@
 			$publicKey = $row['publicKey'];
 			$username =	$row['username'];
 			$_SESSION['publicKey'] = $publicKey;
+			$_SESSION['publicKey'] = substr($_SESSION['publicKey'], 2);
 			$_SESSION['username'] = $username;
-			$_SESSION['utxo'] = getUTXO($publicKey);
+			$balance = (int)getUTXO($publicKey);
+			if($balance < 0){
+						$_SESSION['utxo'] = 0;
+			}else{
+						$_SESSION['utxo'] = $balance;
+			}
+
 		}
 	}elseif(isset($_POST['newUser'])){
 		$username = $_POST['username'];
@@ -37,7 +45,10 @@
 		VALUES ('$email', '$username', '$password', '$publicKey')";
 		$file_db->exec($qry);
 		$_SESSION['publicKey'] = $publicKey;
+		$_SESSION['publicKey'] = substr($_SESSION['publicKey'], 2);
 		$_SESSION['username'] = $username;
 		$_SESSION['utxo'] = 0;
 	}
+
+
 ?>

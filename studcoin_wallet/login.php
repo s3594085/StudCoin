@@ -203,10 +203,10 @@ $("#login").click(function(){
                 alert(data);
             }
             else{
+                console.log(data); 
                 $('.login').hide();
                 $('.verified').show();
             }
-
         });
 
 

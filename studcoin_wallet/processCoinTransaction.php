@@ -1,13 +1,14 @@
 <?php
 session_start();
+include('getUTXO.php');
+include('apicall.php');
 $requestedAmount = (int)$_POST['amount'];
 $postdata =
     array(
-      'amount'=> $requestedAmount,
-      'publickey' => $_SESSION['publicKey']
+      'amount'=> (int)$requestedAmount,
+      'publickey' => $_SESSION['publicKey'],
+      'recipient' => $_SESSION['publicKey']
     );
-
-
 
 $opts=array('http' =>
    array(
@@ -16,17 +17,14 @@ $opts=array('http' =>
         'content' => json_encode($postdata)
      )
 );
-$context  = stream_context_create($opts);
-$server = '127.0.0.1';
-$port = '5000';
-$url = 'http://'.$server.':'.$port.'/buyCoins';
 
-$result = file_get_contents($url, false, $context);
-$balanceToAdd = json_decode($result);
+$result = makeRequest($opts, 'buyCoins');
+if($result===FALSE){
+  header("HTTP/1.1 406 Not Acceptable");
+  return;
+}
 
-include('getUTXO.php');
+//get the balance and update the user balance
 
 $_SESSION['utxo'] = getUTXO($_SESSION['publicKey']);
-
-
 ?>

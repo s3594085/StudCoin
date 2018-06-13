@@ -86,10 +86,6 @@ function getAllUserPurchases($userID){
             array_push($itemsList, $item);
 
     }
-
-
-
-
     $html .= ' <div class ="row">';
     foreach($itemsList as $item){
             $html .= '<div class="col-sm-6 col-md-4 col-lg-3 p-b-50">';
@@ -108,7 +104,7 @@ function getAllUserPurchases($userID){
             $html .= '<input type="hidden" id="item' . $item['itemID'] .'_name" value ="'. $item['itemName'].'">';
             $html .= '<div class="col-sm">';
             if($item['status']=='pending'){
-                $html .= '<button type="button" class="float-right btn btn-lg btn-warning" disabled>Pending</button>';
+                $html .= '<button type="button" class="float-right btn btn-lg btn-success" disabled>Purchased</button>';
             }elseif($item['status']=='purchased'){
                 $html .= '<button type="button" class="float-right btn btn-lg btn-success" disabled>Yours</button>';
             }
@@ -252,7 +248,6 @@ function printModal($itemID){
   }
   $html.= '</form';
   $html.= '</div>';
-
   echo($html);
 }
 

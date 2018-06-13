@@ -7,10 +7,9 @@
         <link href="css/custom.css" rel="stylesheet">
         <link href="css/bootstrap.min.css" rel="stylesheet">
 
-        <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script> -->
-        <!-- <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script> -->
 
-  <!-- <script language='JavaScript' type='text/javascript' src='https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/8.0.4/jsrsasign-all-min.js'></script> -->
+
+
     <?php include('include/head.inc.php');?>
     </head>
     <?php include('include/nav.inc.php');?>
@@ -27,6 +26,7 @@
                 </div>
 
                 <div class="BuyCoins" style="padding-left:50px;padding-right:50px;">
+                    <span id="errorNotify" style="color:red;"></span><br>
                     <h5>Buy Coins</h5>
                     <input type="text" id="amount" class="fadeIn second" name="public" placeholder="Amount to Buy">
                     </br></br>
@@ -76,7 +76,13 @@ $("#requestCoinsSubmit").click(function(){
               console.log(data);
               alert('balance updated');
               window.location.replace('index.php');
-        });
+        })
+        .fail(function(data){
+            console.log(data);
+            $("#errorNotify").html('Requested amount is unavailable. Please choose another amount');
+
+        })
+        ;
     }
 });
 
@@ -91,6 +97,11 @@ $("#shopping").click(function(){
     window.location.replace('index.php');
 
 
+});
+
+$("#amount").click(function(){
+    $("#errorNotify").html("");
+    $("#amount").val("");
 });
 $("#send").click(function(){
     var recipient = $("#recipient").val();

@@ -35,7 +35,8 @@
 
 <script>
   //Global variables for key pair validation
-  var pubKey = '<?php echo($_SESSION['publicKey']);?>';
+  // 04 required for key validation solely for the javascript platform
+  var pubKey = '04'+'<?php echo($_SESSION['publicKey']);?>';
   var privKey;
   var curve = "NIST P-256";
   var hashFunc = "SHA256withECDSA";
@@ -46,17 +47,18 @@
   $("#checkout").click(function(){
     privKey = $.trim($('#privateKey').val());
     //validate keypair first
+    console.log(pubKey);
 
     if(verifyKeyPair()){
       var messageRaw = new Object();
       messageRaw.amount = <?php echo $_SESSION['cart']['amt'];?>;
       messageRaw.recipient = '<?php echo $_SESSION['cart']['seller'];?>';
       messageRaw.itemID = <?php echo $_SESSION['cart']['itemID'];?>;
-      messageRaw.publickey = pubKey;
+      messageRaw.publickey = pubKey.slice(2);
+
+      //construct message to be signed
       var message = messageRaw.amount.toString() + messageRaw.recipient +
                     messageRaw.itemID.toString() + messageRaw.publickey;
-
-
 
       var signature = KJUR.crypto.ECDSA.asn1SigToConcatSig(sign(message));
       $.post('formProcess.php',{
