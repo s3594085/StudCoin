@@ -24,7 +24,7 @@
 			$_SESSION['publicKey'] = $publicKey;
 			$_SESSION['publicKey'] = substr($_SESSION['publicKey'], 2);
 			$_SESSION['username'] = $username;
-			$balance = (int)getUTXO($publicKey);
+			$balance = (int)getUTXO($_SESSION['publicKey']);
 			if($balance < 0){
 						$_SESSION['utxo'] = 0;
 			}else{
