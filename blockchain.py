@@ -176,9 +176,10 @@ class Blockchain(object):
                 r = requests.post(f'{address}nodes/register', data=json.dumps(data), headers=headers)
             except Exception:
                 print("Connection failed")
-                return
+                return False
 
         self.nodes.add(address)
+        return True
 
     def valid_chain(self, chain):
         """
@@ -595,7 +596,7 @@ def generateKeyPair():
     return jsonify(response)
 
 if __name__ == '__main__':
-    host = '127.0.0.1'
+    host = '0.0.0.0'
     port = 5000
     ans = input("Begin a new chain? Y/N\n")
     pattern = re.compile("http://[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:[0-9]{1,4}/")
