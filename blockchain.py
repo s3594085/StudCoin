@@ -175,7 +175,7 @@ class Blockchain(object):
                 r = requests.post(f'{address}nodes/register', data=json.dumps(data), headers=headers)
             except Exception:
                 print("Connection failed")
-                return
+                return False
 
         self.nodes.add(address)
         return True
