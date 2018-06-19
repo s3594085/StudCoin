@@ -480,6 +480,22 @@ def stop_mining():
     blockchain.num_miners = 0
     return "Stopped Mining"
 
+@app.route('/findTransaction', methods=['POST'])
+def find_transaction():
+    values = request.get_json()
+    id = values['id']
+    curIndex = 1
+    chain = blockchain.chain
+    while curIndex <= len(chain):
+        print("HELLO")
+        block = chain[curIndex]
+        for tx in block['transactions']:
+            if tx['id'] == id:
+                return jsonify(tx), 200
+        curIndex += 1
+
+    return "Not found", 300
+
 @app.route('/buyCoins', methods=['POST'])
 def buy_coins():
     values = request.get_json()
@@ -566,7 +582,7 @@ def new_transaction():
 
     response = {'txid': tx['id']}
 
-    return jsonify(response), 500
+    return jsonify(response), 200
 
 
 @app.route('/chain', methods=['GET'])
@@ -596,12 +612,18 @@ def generateKeyPair():
     return jsonify(response)
 
 if __name__ == '__main__':
-    host = '10.132.33.190'
+    host = '127.0.0.1'
     port = 5000
+    pattern = re.compile("http://[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:[0-9]{1,4}/")
     ans = input("Connect to another node? Y/N\n")
     if ans == "N" or ans == "n":
-        ans = input("Are you sure? This will result in you creating a new chain")
-    pattern = re.compile("http://[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:[0-9]{1,4}/")
+        ans = input("Are you sure? This will result in you creating a new chain\n")
+        if ans == "Y" or ans == "y":
+            node_privatekey = SigningKey.generate(curve=NIST256p, hashfunc=sha256)
+            node_publickey = node_privatekey.get_verifying_key()
+            node_privatekey = node_privatekey.to_string().hex()
+            node_publickey = node_publickey.to_string().hex()
+            app.run(host, port, threaded=True)
     if ans == "Y" or ans == "y":
         while True:
             node = input("Enter a node IP to connect to: i.e.\"http://ipaddress:port/\"\nEnter Q to quit\n")

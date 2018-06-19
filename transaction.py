@@ -2,8 +2,8 @@ import json
 import hashlib
 
 from ecdsa import SigningKey, VerifyingKey, NIST256p
+from time import time
 from hashlib import sha256
-
 from flask import jsonify
 from functools import reduce
 
@@ -76,6 +76,11 @@ class Transaction:
         return transactionJSON
 
 def getTransactionId(transaction):
+    timestr = str("%.20f" % time())
+    print ( time())
+    print(timestr)
+    timestr = timestr[::-1]
+    print(timestr)
     txInContent = []
     txOutContent = []
 
@@ -89,7 +94,7 @@ def getTransactionId(transaction):
 
     txOutContent = reduce((lambda x, y: x + y), txOutContent)
 
-    string = txInContent + txOutContent
+    string = txInContent + txOutContent + timestr
 
     return hashlib.sha256(string.encode()).hexdigest()
 
