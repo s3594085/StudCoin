@@ -315,7 +315,6 @@ class Blockchain(object):
             else:
                 messageString = str(message['amount']) + message['recipient'] + message[
                     'publickey']
-
             messageEncode = str(messageString).encode()
             publicKeySig = VerifyingKey.from_string(bytes.fromhex(publickey), curve=NIST256p, hashfunc=sha256)
             return publicKeySig.verify(signatureHex, messageEncode)
@@ -328,8 +327,8 @@ class Blockchain(object):
             return False
 
     def sign(self, message):
-        messageStr = json.dumps(message).encode()
-        private_key = SigningKey.from_string(bytes.fromhex(node_privatekey), curve=NIST256p)
+        messageStr = message.encode()
+        private_key = SigningKey.from_string(bytes.fromhex(node_privatekey), curve=NIST256p, hashfunc=sha256)
         sigPreHex = private_key.sign(messageStr)
         return sigPreHex.hex()
 
@@ -510,10 +509,11 @@ def buy_coins():
             "amount": amount,
             "publickey": node_publickey,
         }
+        signature = str(str(amount)+publickey+node_publickey)
         nodes = set()
         nodes.add(" ")
         data = {
-            "signature": blockchain.sign(message),
+            "signature": blockchain.sign(signature),
             "nodes": [""],
             "message": message,
         }
@@ -536,7 +536,7 @@ def new_transaction():
     if not all(k in values for k in required):
         return 'Missing values', 401
 
-
+    required = ['recipient', 'amount', 'publickey']
     message = values['message']
     if not all(k in message for k in required):
         return 'Missing values', 401
