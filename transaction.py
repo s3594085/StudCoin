@@ -7,7 +7,7 @@ from hashlib import sha256
 from flask import jsonify
 from functools import reduce
 
-COINBASE_AMOUNT = 2
+COINBASE_AMOUNT = 2000000
 
 
 class UnspentTxOut:

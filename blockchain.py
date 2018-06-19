@@ -309,13 +309,8 @@ class Blockchain(object):
     def verify(self, signature, message, publickey):
         try:
             signatureHex = bytes.fromhex(signature)
-            if 'itemID' in message:
-                messageString = str(message['amount']) + message['recipient'] + str(message['itemID']) + message[
-                    'publickey']
-            else:
-                messageString = str(message['amount']) + message['recipient'] + message[
-                    'publickey']
-
+            print(message)
+            messageString = str(message['amount']) + message['recipient'] + str(message['itemID']) + message['publickey']
             messageEncode = str(messageString).encode()
             publicKeySig = VerifyingKey.from_string(bytes.fromhex(publickey), curve=NIST256p, hashfunc=sha256)
             return publicKeySig.verify(signatureHex, messageEncode)
@@ -323,13 +318,10 @@ class Blockchain(object):
         except AssertionError:
             print("Invalid Key")
             return False
-        except BadSignatureError:
-            print("Invalid Key")
-            return False
 
     def sign(self, message):
-        messageStr = json.dumps(message).encode()
-        private_key = SigningKey.from_string(bytes.fromhex(node_privatekey), curve=NIST256p)
+        messageStr = message.encode()
+        private_key = SigningKey.from_string(bytes.fromhex(node_privatekey), curve=NIST256p, hashfunc=sha256)
         sigPreHex = private_key.sign(messageStr)
         return sigPreHex.hex()
 
@@ -399,7 +391,7 @@ def balance():
     response = {
         "balance": balance
     }
-
+    print(blockchain.utxo)
     return jsonify(response), 200
 
 
@@ -501,27 +493,33 @@ def buy_coins():
     values = request.get_json()
     amount = values['amount']
     publickey = values['publickey']
-
+    print(getBalance(node_publickey, blockchain.utxo))
     if getBalance(node_publickey, blockchain.utxo) > amount:
         # Creates a new transaction
         headers = {'Content-Type': 'application/json'}
         message = {
             "recipient": publickey,
-            "amount": amount,
+            "amount":  int(amount),
             "publickey": node_publickey,
+            "itemID": int(0),
         }
+        messageString = str(message['amount']) + message['recipient'] + str(message['itemID']) + message['publickey']
+        signature = blockchain.sign(messageString)
         nodes = set()
         nodes.add(" ")
         data = {
-            "signature": blockchain.sign(message),
+            "signature": signature,
             "nodes": [""],
             "message": message,
         }
         r = requests.post(f'http://{host}:{port}/transactions/new', data=json.dumps(data), headers=headers)
+        if r.status_code==403:
+            print('inavlid amount')
+            return 'invalid amount',403
         response = {
-            "amount": amount
+                "amount": amount
         }
-        return jsonify(response), 200
+        return jsonify(response),                  
     else:
         return 'Node does not have enough funds, try another node', 401
 
