@@ -111,7 +111,6 @@ class Blockchain(object):
                 return None
             block['nonce'] += 1
             if block['nonce'] > 0x100000000:
-
                 return None
             guess_hash = self.valid_proof(block)
         return block
@@ -486,7 +485,6 @@ def find_transaction():
     curIndex = 1
     chain = blockchain.chain
     while curIndex <= len(chain):
-        print("HELLO")
         block = chain[curIndex]
         for tx in block['transactions']:
             if tx['id'] == id:
@@ -536,8 +534,8 @@ def new_transaction():
     if not all(k in values for k in required):
         return 'Missing values', 401
 
-    required = ['recipient', 'amount', 'publickey']
     message = values['message']
+    required = ['publickey', 'recipient', 'amount']
     if not all(k in message for k in required):
         return 'Missing values', 401
     publickey = message['publickey']
@@ -549,6 +547,7 @@ def new_transaction():
 
     if amount <= 0:
         return 'Amount cannot be negative', 404
+
 
     if not blockchain.verify(values['signature'], message, publickey):
         return 'Invalid Signature', 401
@@ -613,7 +612,7 @@ def generateKeyPair():
 
 if __name__ == '__main__':
     host = '127.0.0.1'
-    port = 5000
+    port = 5010
     pattern = re.compile("http://[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}:[0-9]{1,4}/")
     ans = input("Connect to another node? Y/N\n")
     if ans == "N" or ans == "n":
@@ -631,6 +630,7 @@ if __name__ == '__main__':
                 exit()
             if pattern.match(node):
                 if blockchain.register_node(node, 1):
+                    blockchain.resolve_conflicts(100, "")
                     break
     node_privatekey = SigningKey.generate(curve=NIST256p, hashfunc=sha256)
     node_publickey = node_privatekey.get_verifying_key()

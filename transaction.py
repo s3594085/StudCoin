@@ -7,7 +7,7 @@ from hashlib import sha256
 from flask import jsonify
 from functools import reduce
 
-COINBASE_AMOUNT = 2000000
+COINBASE_AMOUNT = 2
 
 
 class UnspentTxOut:
@@ -77,10 +77,7 @@ class Transaction:
 
 def getTransactionId(transaction):
     timestr = str("%.20f" % time())
-    print ( time())
-    print(timestr)
     timestr = timestr[::-1]
-    print(timestr)
     txInContent = []
     txOutContent = []
 
